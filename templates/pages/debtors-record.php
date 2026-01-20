@@ -431,21 +431,26 @@ table input{width:70px;padding:0.4rem;border:1px solid #e2e8f0;border-radius:4px
 .modal-body{padding:1.5rem}
 .modal-footer{display:flex;gap:0.5rem;padding:1rem;background:#f1f5f9}
 .modal-footer .btn{flex:1;justify-content:center}
-.receipt-info{margin-bottom:1rem;font-size:0.85rem}
+.receipt-company{text-align:center;margin-bottom:0.5rem}
+.receipt-company h2{color:#001943;margin:0 0 0.25rem 0;font-weight:800;letter-spacing:0.5px;text-transform:uppercase}
+.receipt-company p{color:#64748b;font-size:0.8rem;margin:0}
+.receipt-divider{border-top:1px solid #001943;margin:0.5rem 0}
+.receipt-info{margin-bottom:0.5rem;font-size:0.85rem}
 .receipt-info p{margin:0.25rem 0;display:flex;justify-content:space-between}
-.receipt-items{border-top:1px solid #001943;border-bottom:1px solid #001943;padding:0.75rem 0;margin:0.75rem 0}
-.receipt-table{width:100%;border-collapse:collapse;font-size:0.75rem;table-layout:fixed;border:1px solid #001943}
-.receipt-table th{font-weight:600;text-align:center;border:1px solid #001943;padding:0.3rem 0.2rem;background:#f1f5f9}
-.receipt-table td{padding:0.3rem 0.2rem;text-align:center;border:1px solid #001943}
-.receipt-table th:first-child,.receipt-table td:first-child{text-align:left;width:44%}
-.receipt-table th:nth-child(2),.receipt-table td:nth-child(2){text-align:right;width:18%}
-.receipt-table th:nth-child(3),.receipt-table td:nth-child(3){width:12%}
-.receipt-table th:nth-child(4),.receipt-table td:nth-child(4){text-align:right;width:26%;font-weight:600}
-.receipt-table .discount-row td{font-size:0.7rem;font-style:italic;background:#f8fafc}
-.receipt-table .discount-label{text-align:left}
-.receipt-table .discount-value{text-align:right;color:#dc2626;font-weight:600}
-.receipt-total{font-size:1.1rem;font-weight:700;color:#001943;border-top:2px solid #001943;padding-top:0.5rem;margin-top:0.5rem;display:flex;justify-content:space-between}
-.receipt-footer{text-align:center;margin-top:1rem;padding-top:1rem;border-top:2px dashed #e2e8f0;font-size:0.75rem;color:#64748b}
+.receipt-items{margin:0.5rem 0}
+.receipt-row{display:grid;grid-template-columns:1.6fr 0.8fr 0.5fr 0.9fr;gap:6px;align-items:baseline}
+.receipt-row .item-price,.receipt-row .item-qty,.receipt-row .item-total{text-align:right}
+.receipt-item-header{font-size:0.7rem;font-weight:700;text-transform:uppercase;color:#0f172a}
+.receipt-item{padding:0.35rem 0;border-bottom:1px dashed #e2e8f0}
+.receipt-item:last-child{border-bottom:none}
+.receipt-item-discount{display:flex;justify-content:space-between;font-size:0.7rem;margin-top:0.2rem}
+.receipt-item-discount .receipt-amount{color:#dc2626}
+.receipt-amount{font-weight:800}
+.receipt-totals{margin-top:0.5rem;font-size:0.85rem}
+.receipt-totals p{display:flex;justify-content:space-between;margin:0.25rem 0}
+.receipt-totals .grand{font-size:1rem;font-weight:700;color:#001943}
+.receipt-footer{text-align:center;margin-top:0.5rem;font-size:0.75rem;color:#64748b}
+.receipt-footer p{margin:0.25rem 0}
 @media(max-width:768px){
 .header{flex-direction:column;text-align:center}
 .card-actions{flex-direction:column}
@@ -461,7 +466,7 @@ table input{width:50px}
 <h1><?php echo $action === 'order' ? '<i class="fas fa-cart-plus"></i> Take Order - ' : '<i class="fas fa-money-check"></i> Clear Debt - '; ?><?php echo esc_html($selected_debtor->name); ?></h1>
 <?php else : ?>
 <h1><i class="fas fa-user-clock"></i> Debtors Record</h1>
-<a href="<?php echo home_url('/debtors-history/'); ?>" class="btn btn-white"><i class="fas fa-history"></i> View History</a>
+<a href="<?php echo esc_url(home_url('/debtors-history/')); ?>" class="btn btn-white"><i class="fas fa-history"></i> View History</a>
 <?php endif; ?>
 </div>
 
@@ -503,6 +508,7 @@ document.querySelectorAll('input[type="number"]').forEach(function(i){i.addEvent
 </script>
 
 <?php elseif ($selected_debtor && $action === 'pay') : ?>
+<?php $history_redirect_url = add_query_arg(array('debtor' => $selected_debtor->id), home_url('/debtors-history/')); ?>
 <div class="glass">
 <h3 style="color:#001943;margin-top:0"><i class="fas fa-money-check"></i> Record Payment</h3>
 <p><strong>Debtor:</strong> <?php echo esc_html($selected_debtor->name); ?></p>
@@ -589,7 +595,7 @@ if(Math.abs(diff)>0.01&&tot>0){w.style.display='block';if(diff>0){w.textContent=
 <a href="<?php echo esc_url(add_query_arg(array('debtor'=>$debtor->id,'action'=>'order'))); ?>" class="btn btn-primary"><i class="fas fa-cart-plus"></i> Order</a>
 <a href="<?php echo esc_url(add_query_arg(array('debtor'=>$debtor->id,'action'=>'pay'))); ?>" class="btn btn-success"><i class="fas fa-money-check"></i> Clear Debt</a>
 </div>
-<div style="margin-top:0.75rem"><a href="<?php echo esc_url(home_url('/debtors-history/?debtor='.$debtor->id)); ?>" class="btn btn-outline" style="width:100%;justify-content:center"><i class="fas fa-history"></i> View History</a></div>
+<div style="margin-top:0.75rem"><a href="<?php echo esc_url(add_query_arg(array('debtor' => $debtor->id), home_url('/debtors-history/'))); ?>" class="btn btn-outline" style="width:100%;justify-content:center"><i class="fas fa-history"></i> View History</a></div>
 </div>
 <?php endforeach; ?>
 </div>
@@ -602,7 +608,11 @@ if(Math.abs(diff)>0.01&&tot>0){w.style.display='block';if(diff>0){w.textContent=
 <div class="modal-content">
 <div class="modal-header order"><h3><i class="fas fa-receipt"></i> Credit Receipt</h3><button class="modal-close" onclick="closeOrderModal()">&times;</button></div>
 <div class="modal-body" id="order-print-area">
-<div style="text-align:center;margin-bottom:1rem;border-bottom:2px dashed #e2e8f0;padding-bottom:1rem"><h2 style="color:#001943;margin:0 0 0.25rem">Chinemerem Foods</h2><p style="color:#64748b;font-size:0.8rem;margin:0">Credit Order Receipt</p></div>
+<div class="receipt-company">
+    <h2>Chinemerem Foods</h2>
+    <p>Inventory Management System</p>
+</div>
+<div class="receipt-divider"></div>
 <div class="receipt-info">
 <p><span>Order #:</span><strong><?php echo esc_html($order_receipt['order_number']); ?></strong></p>
 <p><span>Date:</span><?php echo esc_html($order_receipt['date']); ?></p>
@@ -610,6 +620,7 @@ if(Math.abs(diff)>0.01&&tot>0){w.style.display='block';if(diff>0){w.textContent=
 <p><span>Debtor:</span><strong style="color:#dc2626"><?php echo esc_html($order_receipt['debtor_name']); ?></strong></p>
 <p><span>Staff:</span><?php echo esc_html($order_receipt['staff']); ?></p>
 </div>
+<div class="receipt-divider"></div>
 <?php
 $order_discount_total = 0;
 foreach ($order_receipt['items'] as $item) {
@@ -617,28 +628,42 @@ foreach ($order_receipt['items'] as $item) {
 }
 ?>
 <div class="receipt-items">
-<table class="receipt-table">
-<thead><tr><th>Item</th><th>Price</th><th>Qty</th><th>Total</th></tr></thead>
-<tbody>
-<?php foreach ($order_receipt['items'] as $item) : ?>
-<tr class="item-row">
-    <td><?php echo esc_html($item['product_name']); ?></td>
-    <td>₦<?php echo cfi_format_receipt_value($item['price']); ?></td>
-    <td><?php echo cfi_format_receipt_value($item['quantity']); ?></td>
-    <td>₦<?php echo cfi_format_receipt_value($item['total']); ?></td>
-</tr>
-<tr class="discount-row">
-    <td class="discount-label" colspan="3">Discount</td>
-    <td class="discount-value"><?php echo $item['discount'] > 0 ? '-₦' . cfi_format_receipt_value($item['discount']) : '-'; ?></td>
-</tr>
-<?php endforeach; ?>
-</tbody>
-</table>
+    <div class="receipt-row receipt-item-header">
+        <span>Item</span>
+        <span class="item-price">Price</span>
+        <span class="item-qty">Qty</span>
+        <span class="item-total">Total</span>
+    </div>
+    <?php foreach ($order_receipt['items'] as $item) : ?>
+    <div class="receipt-item">
+        <div class="receipt-row receipt-item-row">
+            <span><?php echo esc_html($item['product_name']); ?></span>
+            <span class="item-price receipt-amount">₦<?php echo cfi_format_receipt_value($item['price']); ?></span>
+            <span class="item-qty receipt-amount"><?php echo cfi_format_receipt_value($item['quantity']); ?></span>
+            <span class="item-total receipt-amount">₦<?php echo cfi_format_receipt_value($item['total']); ?></span>
+        </div>
+        <div class="receipt-item-discount">
+            <span>Discount:</span>
+            <span class="receipt-amount"><?php echo $item['discount'] > 0 ? '-₦' . cfi_format_receipt_value($item['discount']) : '-'; ?></span>
+        </div>
+    </div>
+    <?php endforeach; ?>
 </div>
-<p style="display:flex;justify-content:space-between;color:#dc2626;font-weight:600"><span>Total Discount:</span><span>-₦<?php echo cfi_format_receipt_value($order_discount_total); ?></span></p>
-<div class="receipt-total"><span>Order Total:</span><span>₦<?php echo cfi_format_receipt_value($order_receipt['total']); ?></span></div>
-<p style="display:flex;justify-content:space-between;color:#dc2626;font-weight:600"><span>New Balance:</span><span>₦<?php echo cfi_format_receipt_value($order_receipt['new_balance']); ?></span></p>
-<div class="receipt-footer"><p style="margin:0">This is a credit order</p><p style="margin:0">Payment pending</p></div>
+<div class="receipt-divider"></div>
+<div class="receipt-totals">
+    <p><span>Subtotal:</span> <span class="receipt-amount">₦<?php echo cfi_format_receipt_value($order_receipt['total'] + $order_discount_total); ?></span></p>
+    <p><span>Total Discount:</span> <span class="receipt-amount">-₦<?php echo cfi_format_receipt_value($order_discount_total); ?></span></p>
+    <p class="grand"><span>Order Total:</span> <span class="receipt-amount">₦<?php echo cfi_format_receipt_value($order_receipt['total']); ?></span></p>
+</div>
+<div class="receipt-divider"></div>
+<div class="receipt-info">
+    <p><span>New Balance:</span><span class="receipt-amount">₦<?php echo cfi_format_receipt_value($order_receipt['new_balance']); ?></span></p>
+</div>
+<div class="receipt-footer">
+    <p>This is a credit order</p>
+    <p>Payment pending</p>
+    <p>Powered by BendlessTech</p>
+</div>
 </div>
 <div class="modal-footer">
 <button onclick="printOrderReceipt()" class="btn" style="background:#7c3aed;color:#fff"><i class="fas fa-print"></i> Print</button>
@@ -755,7 +780,7 @@ h+='</body></html>';
 w.document.write(h);w.document.close();
 w.onload=function(){setTimeout(function(){w.print()},300)};
 }
-function closeOrderModal(){document.getElementById('order-modal').style.display='none';window.location.href='<?php echo esc_url(add_query_arg('t', time(), remove_query_arg(array('order_done','rk')))); ?>'}
+function closeOrderModal(){document.getElementById('order-modal').style.display='none';window.location.href='<?php echo esc_url($history_redirect_url); ?>'}
 </script>
 <?php endif; ?>
 
@@ -763,8 +788,12 @@ function closeOrderModal(){document.getElementById('order-modal').style.display=
 <div class="modal" id="pay-modal">
 <div class="modal-content">
 <div class="modal-header payment"><h3><i class="fas fa-receipt"></i> Payment Receipt</h3><button class="modal-close" onclick="closePayModal()">&times;</button></div>
-<div class="modal-body">
-<div style="text-align:center;margin-bottom:1rem;border-bottom:2px dashed #e2e8f0;padding-bottom:1rem"><h2 style="color:#001943;margin:0 0 0.25rem">Chinemerem Foods</h2><p style="color:#64748b;font-size:0.8rem;margin:0">Debt Payment Receipt</p></div>
+<div class="modal-body" id="pay-print-area">
+<div class="receipt-company">
+    <h2>Chinemerem Foods</h2>
+    <p>Inventory Management System</p>
+</div>
+<div class="receipt-divider"></div>
 <div class="receipt-info">
 <p><span>Receipt #:</span><strong><?php echo esc_html($payment_receipt['receipt_number']); ?></strong></p>
 <p><span>Date:</span><?php echo esc_html($payment_receipt['date']); ?></p>
@@ -772,15 +801,31 @@ function closeOrderModal(){document.getElementById('order-modal').style.display=
 <p><span>Debtor:</span><strong style="color:#16a34a"><?php echo esc_html($payment_receipt['debtor_name']); ?></strong></p>
 <p><span>Staff:</span><?php echo esc_html($payment_receipt['staff']); ?></p>
 </div>
-<div class="receipt-items">
-<p style="display:flex;justify-content:space-between"><span>Balance Before:</span><span style="color:#dc2626">₦<?php echo number_format($payment_receipt['balance_before'], 0); ?></span></p>
-<p style="display:flex;justify-content:space-between;font-weight:600;font-size:1.1rem;color:#16a34a"><span>Payment Amount:</span><span>₦<?php echo number_format($payment_receipt['payment_amount'], 0); ?></span></p>
-<?php if ($payment_receipt['transfer_amount'] > 0) : ?><p style="display:flex;justify-content:space-between;font-size:0.8rem"><span>- Via Transfer (<?php echo esc_html($payment_receipt['bank_name']); ?>):</span><span>₦<?php echo number_format($payment_receipt['transfer_amount'], 0); ?></span></p><?php endif; ?>
-<?php if ($payment_receipt['cash_amount'] > 0) : ?><p style="display:flex;justify-content:space-between;font-size:0.8rem"><span>- Via Cash:</span><span>₦<?php echo number_format($payment_receipt['cash_amount'], 0); ?></span></p><?php endif; ?>
-<?php if ($payment_receipt['home_amount'] > 0) : ?><p style="display:flex;justify-content:space-between;font-size:0.8rem"><span>- Home Calculation:</span><span>₦<?php echo number_format($payment_receipt['home_amount'], 0); ?></span></p><?php endif; ?>
+<div class="receipt-divider"></div>
+<div class="receipt-totals">
+    <p><span>Balance Before:</span><span class="receipt-amount" style="color:#dc2626">₦<?php echo number_format($payment_receipt['balance_before'], 0); ?></span></p>
+    <p class="grand"><span>Payment Amount:</span><span class="receipt-amount">₦<?php echo number_format($payment_receipt['payment_amount'], 0); ?></span></p>
+    <?php if ($payment_receipt['transfer_amount'] > 0) : ?>
+    <p><span>Transfer:</span><span class="receipt-amount">₦<?php echo number_format($payment_receipt['transfer_amount'], 0); ?></span></p>
+    <?php endif; ?>
+    <?php if ($payment_receipt['cash_amount'] > 0) : ?>
+    <p><span>Cash:</span><span class="receipt-amount">₦<?php echo number_format($payment_receipt['cash_amount'], 0); ?></span></p>
+    <?php endif; ?>
+    <?php if ($payment_receipt['home_amount'] > 0) : ?>
+    <p><span>Home Calculation:</span><span class="receipt-amount">₦<?php echo number_format($payment_receipt['home_amount'], 0); ?></span></p>
+    <?php endif; ?>
+    <?php if (!empty($payment_receipt['bank_name']) && $payment_receipt['transfer_amount'] > 0) : ?>
+    <p><span>Bank:</span><span><?php echo esc_html($payment_receipt['bank_name']); ?></span></p>
+    <?php endif; ?>
 </div>
-<div class="receipt-total"><span>New Balance:</span><span style="color:<?php echo $payment_receipt['new_balance'] > 0 ? '#dc2626' : '#16a34a'; ?>">₦<?php echo number_format($payment_receipt['new_balance'], 0); ?></span></div>
-<div class="receipt-footer"><p style="margin:0">Payment received with thanks</p><p style="margin:0">Powered by BendlessTech</p></div>
+<div class="receipt-divider"></div>
+<div class="receipt-info">
+    <p><span>New Balance:</span><span class="receipt-amount" style="color:<?php echo $payment_receipt['new_balance'] > 0 ? '#dc2626' : '#16a34a'; ?>">₦<?php echo number_format($payment_receipt['new_balance'], 0); ?></span></p>
+</div>
+<div class="receipt-footer">
+    <p>Payment received with thanks</p>
+    <p>Powered by BendlessTech</p>
+</div>
 </div>
 <div class="modal-footer">
 <button onclick="printPayReceipt()" class="btn" style="background:#7c3aed;color:#fff"><i class="fas fa-print"></i> Print</button>
@@ -868,7 +913,7 @@ h+='</body></html>';
 w.document.write(h);w.document.close();
 w.onload=function(){setTimeout(function(){w.print()},300)};
 }
-function closePayModal(){document.getElementById('pay-modal').style.display='none';window.location.href='<?php echo esc_url(add_query_arg('t', time(), remove_query_arg(array('pay_done','pk')))); ?>'}
+function closePayModal(){document.getElementById('pay-modal').style.display='none';window.location.href='<?php echo esc_url($history_redirect_url); ?>'}
 </script>
 <?php endif; ?>
 

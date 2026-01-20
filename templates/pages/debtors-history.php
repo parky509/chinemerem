@@ -121,9 +121,26 @@ tr:hover{background:rgba(0,25,67,0.02)}
 .modal-header h3{margin:0;font-size:1rem}
 .modal-close{background:none;border:none;color:#fff;font-size:1.5rem;cursor:pointer}
 .modal-body{padding:1.5rem}
-.order-item{display:flex;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid #e2e8f0;font-size:0.85rem}
-.order-item:last-child{border-bottom:none}
-.order-total{font-weight:700;font-size:1.1rem;color:#001943;padding-top:0.5rem;margin-top:0.5rem;border-top:2px solid #001943;display:flex;justify-content:space-between}
+.receipt-company{text-align:center;margin-bottom:0.5rem}
+.receipt-company h2{color:#001943;margin:0 0 0.25rem 0;font-weight:800;letter-spacing:0.5px;text-transform:uppercase}
+.receipt-company p{color:#64748b;font-size:0.8rem;margin:0}
+.receipt-divider{border-top:1px solid #001943;margin:0.5rem 0}
+.receipt-info{margin-bottom:0.5rem;font-size:0.85rem}
+.receipt-info p{margin:0.25rem 0;display:flex;justify-content:space-between}
+.receipt-items{margin:0.5rem 0}
+.receipt-row{display:grid;grid-template-columns:1.6fr 0.8fr 0.5fr 0.9fr;gap:6px;align-items:baseline}
+.receipt-row .item-price,.receipt-row .item-qty,.receipt-row .item-total{text-align:right}
+.receipt-item-header{font-size:0.7rem;font-weight:700;text-transform:uppercase;color:#0f172a}
+.receipt-item{padding:0.35rem 0;border-bottom:1px dashed #e2e8f0}
+.receipt-item:last-child{border-bottom:none}
+.receipt-item-discount{display:flex;justify-content:space-between;font-size:0.7rem;margin-top:0.2rem}
+.receipt-item-discount .receipt-amount{color:#dc2626}
+.receipt-amount{font-weight:800}
+.receipt-totals{margin-top:0.5rem;font-size:0.85rem}
+.receipt-totals p{display:flex;justify-content:space-between;margin:0.25rem 0}
+.receipt-totals .grand{font-size:1rem;font-weight:700;color:#001943}
+.receipt-footer{text-align:center;margin-top:0.5rem;font-size:0.75rem;color:#64748b}
+.receipt-footer p{margin:0.25rem 0}
 @media(max-width:768px){
 table,table thead,table tbody,table th,table td,table tr{display:block}
 table thead{display:none}
@@ -183,6 +200,7 @@ $icon = $type === 'order' ? 'cart-plus' : ($type === 'payment' ? 'money-check' :
 <button type="button" class="action-btn btn-view" onclick="viewOrder(<?php echo esc_attr($rec->order_id); ?>)"><i class="fas fa-eye"></i></button>
 <button type="button" class="action-btn btn-print" onclick="reprintOrder(<?php echo esc_attr($rec->order_id); ?>)"><i class="fas fa-print"></i></button>
 <?php elseif ($type === 'payment') : ?>
+<button type="button" class="action-btn btn-view" onclick="viewPayment(<?php echo esc_attr($rec->id); ?>)"><i class="fas fa-eye"></i></button>
 <button type="button" class="action-btn btn-print" onclick="reprintPay(<?php echo esc_attr($rec->id); ?>)"><i class="fas fa-print"></i></button>
 <?php else : ?>-<?php endif; ?>
 </td>
@@ -204,6 +222,13 @@ $icon = $type === 'order' ? 'cart-plus' : ($type === 'payment' ? 'money-check' :
 <div class="modal-header"><h3><i class="fas fa-receipt"></i> Order Details</h3><button type="button" class="modal-close" onclick="closeModal()">&times;</button></div>
 <div class="modal-body" id="order-body"><div style="text-align:center;padding:2rem"><i class="fas fa-spinner fa-spin" style="font-size:2rem;color:#001943"></i><p>Loading...</p></div></div>
 </div>
+
+<div class="modal" id="payment-modal">
+<div class="modal-content">
+<div class="modal-header"><h3><i class="fas fa-receipt"></i> Payment Details</h3><button type="button" class="modal-close" onclick="closePaymentModal()">&times;</button></div>
+<div class="modal-body" id="payment-body"><div style="text-align:center;padding:2rem"><i class="fas fa-spinner fa-spin" style="font-size:2rem;color:#001943"></i><p>Loading...</p></div></div>
+</div>
+</div>
 </div>
 
 <?php
@@ -218,6 +243,8 @@ foreach ($history as $rec) {
             'payment_method' => $rec->payment_method,
             'cash_amount' => $rec->cash_amount,
             'transfer_amount' => $rec->transfer_amount,
+            'bank_name' => $rec->bank_name,
+            'home_amount' => $rec->home_calculation_amount,
             'balance_before' => $rec->balance_before,
             'balance_after' => $rec->balance_after,
             'transaction_date' => $rec->transaction_date,
@@ -229,6 +256,8 @@ foreach ($history as $rec) {
 ?>
 <script>
 var payData=<?php echo json_encode($pay_data); ?>;
+var cfiCompanyName = 'CHINEMEREM FOODS';
+var cfiCompanyTagline = 'Inventory Management System';
 
 function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, function(match) {
@@ -242,26 +271,93 @@ function escapeHtml(value) {
     });
 }
 
+function buildOrderReceiptHtml(o){
+    var html='';
+    html+='<div class="receipt-company"><h2>'+cfiCompanyName+'</h2><p>'+cfiCompanyTagline+'</p></div>';
+    html+='<div class="receipt-divider"></div>';
+    html+='<div class="receipt-info">';
+    html+='<p><span>Order #:</span><strong>'+escapeHtml(o.order_number||'N/A')+'</strong></p>';
+    html+='<p><span>Date:</span><span>'+escapeHtml(o.order_date||'N/A')+'</span></p>';
+    html+='<p><span>Time:</span><span>'+escapeHtml(o.order_time||'N/A')+'</span></p>';
+    if(o.customer_name){html+='<p><span>Customer:</span><span>'+escapeHtml(o.customer_name)+'</span></p>'}
+    html+='<p><span>Staff:</span><span>'+escapeHtml(o.staff_name||'Unknown')+'</span></p>';
+    html+='</div>';
+    html+='<div class="receipt-divider"></div>';
+    html+='<div class="receipt-items">';
+    html+='<div class="receipt-row receipt-item-header"><span>Item</span><span class="item-price">Price</span><span class="item-qty">Qty</span><span class="item-total">Total</span></div>';
+    if(o.items&&o.items.length>0){o.items.forEach(function(i){var discountDisplay=Number(i.discount)>0?'-₦'+formatReceiptNumber(i.discount):'-';html+='<div class="receipt-item"><div class="receipt-row receipt-item-row"><span>'+escapeHtml(i.product_name)+'</span><span class="item-price receipt-amount">₦'+formatReceiptNumber(i.price)+'</span><span class="item-qty receipt-amount">'+formatReceiptNumber(i.quantity)+'</span><span class="item-total receipt-amount">₦'+formatReceiptNumber(i.total)+'</span></div><div class="receipt-item-discount"><span>Discount:</span><span class="receipt-amount">'+discountDisplay+'</span></div></div>'})}
+    html+='</div>';
+    html+='<div class="receipt-divider"></div>';
+    html+='<div class="receipt-totals">';
+    html+='<p><span>Subtotal:</span><span class="receipt-amount">₦'+formatReceiptNumber(o.total_amount||0)+'</span></p>';
+    html+='<p><span>Total Discount:</span><span class="receipt-amount">-₦'+formatReceiptNumber(o.discount_amount||0)+'</span></p>';
+    html+='<p class="grand"><span>Grand Total:</span><span class="receipt-amount">₦'+formatReceiptNumber(o.grand_total||0)+'</span></p>';
+    html+='<p><span>Payment:</span><span>'+(o.payment_method||'Cash')+'</span></p>';
+    if(o.transfer_amount>0){html+='<p><span>Transfer:</span><span class="receipt-amount">₦'+formatReceiptNumber(o.transfer_amount)+'</span></p>'}
+    if(o.cash_amount>0){html+='<p><span>Cash:</span><span class="receipt-amount">₦'+formatReceiptNumber(o.cash_amount)+'</span></p>'}
+    html+='</div>';
+    html+='<div class="receipt-divider"></div>';
+    html+='<div class="receipt-footer"><p>Thank you for your patronage!</p><p>Powered by BendlessTech</p></div>';
+    return html;
+}
+
+function buildPaymentReceiptHtml(p){
+    var method=String(p.payment_method||'cash').replace(/_/g,' ');
+    var transferLine=p.transfer_amount>0?'<p><span>Transfer:</span><span class="receipt-amount">₦'+formatReceiptNumber(p.transfer_amount)+'</span></p>':'';
+    var cashLine=p.cash_amount>0?'<p><span>Cash:</span><span class="receipt-amount">₦'+formatReceiptNumber(p.cash_amount)+'</span></p>':'';
+    var homeLine=p.home_amount>0?'<p><span>Home Calculation:</span><span class="receipt-amount">₦'+formatReceiptNumber(p.home_amount)+'</span></p>':'';
+    var bankLine=p.bank_name&&p.transfer_amount>0?'<p><span>Bank:</span><span>'+escapeHtml(p.bank_name)+'</span></p>':'';
+    var html='';
+    html+='<div class="receipt-company"><h2>'+cfiCompanyName+'</h2><p>'+cfiCompanyTagline+'</p></div>';
+    html+='<div class="receipt-divider"></div>';
+    html+='<div class="receipt-info">';
+    html+='<p><span>Receipt #:</span><strong>PAY-'+escapeHtml(p.id)+'</strong></p>';
+    html+='<p><span>Date:</span><span>'+escapeHtml(p.transaction_date)+'</span></p>';
+    html+='<p><span>Time:</span><span>'+escapeHtml(p.transaction_time)+'</span></p>';
+    html+='<p><span>Debtor:</span><span>'+escapeHtml(p.debtor_name||'')+'</span></p>';
+    html+='<p><span>Staff:</span><span>'+escapeHtml(p.staff_name||'-')+'</span></p>';
+    html+='</div>';
+    html+='<div class="receipt-divider"></div>';
+    html+='<div class="receipt-totals">';
+    html+='<p><span>Balance Before:</span><span class="receipt-amount" style="color:#dc2626">₦'+formatReceiptNumber(p.balance_before||0)+'</span></p>';
+    html+='<p class="grand"><span>Payment Amount:</span><span class="receipt-amount">₦'+formatReceiptNumber(p.amount||0)+'</span></p>';
+    html+='<p><span>Method:</span><span>'+escapeHtml(method)+'</span></p>';
+    html+=transferLine+cashLine+homeLine+bankLine;
+    html+='</div>';
+    html+='<div class="receipt-divider"></div>';
+    html+='<div class="receipt-info"><p><span>New Balance:</span><span class="receipt-amount">₦'+formatReceiptNumber(p.balance_after||0)+'</span></p></div>';
+    html+='<div class="receipt-footer"><p>Payment received with thanks</p><p>Powered by BendlessTech</p></div>';
+    return html;
+}
+
 function viewOrder(id){
 var modal=document.getElementById('order-modal'),body=document.getElementById('order-body');
 modal.classList.add('active');
 fetch('<?php echo admin_url('admin-ajax.php'); ?>?action=cfi_get_order_details&order_id='+id)
 .then(function(r){return r.json()})
 .then(function(d){
-if(d.success){var o=d.data,h='<div>';
-h+='<p style="margin:0 0 0.5rem"><strong>Order #:</strong> '+escapeHtml(o.order_number||'N/A')+'</p>';
-h+='<p style="margin:0 0 0.5rem"><strong>Date:</strong> '+escapeHtml(o.order_date||'N/A')+'</p>';
-h+='<p style="margin:0 0 1rem"><strong>Customer:</strong> '+escapeHtml(o.customer_name||'N/A')+'</p>';
-if(o.items&&o.items.length>0){var totalDiscount=0;h+='<div style="margin:1rem 0"><table style="width:100%;border-collapse:collapse;font-size:11px;table-layout:fixed;border:1px solid #001943">';
-h+='<tr style="font-weight:600;background:#f1f5f9"><th style="text-align:left;width:40%;border:1px solid #001943;padding:6px 3px">Item</th><th style="text-align:right;width:20%;border:1px solid #001943;padding:6px 3px">Price</th><th style="width:14%;border:1px solid #001943;padding:6px 3px">Qty</th><th style="text-align:right;width:26%;border:1px solid #001943;padding:6px 3px">Total</th></tr>';
-o.items.forEach(function(i){var discountDisplay=Number(i.discount)>0?'-₦'+formatReceiptNumber(i.discount):'-';totalDiscount+=Number(i.discount)||0;h+='<tr><td style="border:1px solid #001943;padding:6px 3px">'+escapeHtml(i.product_name)+'</td><td style="text-align:right;border:1px solid #001943;padding:6px 3px">₦'+formatReceiptNumber(i.price)+'</td><td style="text-align:center;border:1px solid #001943;padding:6px 3px">'+formatReceiptNumber(i.quantity)+'</td><td style="text-align:right;border:1px solid #001943;padding:6px 3px">₦'+formatReceiptNumber(i.total)+'</td></tr>';h+='<tr style="background:#f8fafc"><td style="border:1px solid #001943;padding:6px 3px" colspan="3">Discount</td><td style="text-align:right;color:#c00;border:1px solid #001943;padding:6px 3px">'+discountDisplay+'</td></tr>'});h+='</table></div>';
-h+='<p style="display:flex;justify-content:space-between;margin:0.5rem 0;font-weight:600;color:#c00"><span>Total Discount:</span><span>-₦'+formatReceiptNumber(totalDiscount)+'</span></p>';}
-h+='<div class="order-total" style="font-weight:700"><span>Total:</span><span>₦'+formatReceiptNumber(o.grand_total||0)+'</span></div></div>';
-body.innerHTML=h}else{body.innerHTML='<div style="text-align:center;padding:2rem;color:#991b1b">Failed to load</div>'}
+if(d.success){body.innerHTML=buildOrderReceiptHtml(d.data)}else{body.innerHTML='<div style="text-align:center;padding:2rem;color:#991b1b">Failed to load</div>'}
 }).catch(function(){body.innerHTML='<div style="text-align:center;padding:2rem;color:#991b1b">Error loading</div>'});
 }
 
 function closeModal(){document.getElementById('order-modal').classList.remove('active')}
+
+function viewPayment(id){
+    var modal=document.getElementById('payment-modal'),body=document.getElementById('payment-body');
+    modal.classList.add('active');
+    var p=payData[id];
+    if(!p){body.innerHTML='<div style="text-align:center;padding:2rem;color:#991b1b">Payment not found</div>';return}
+    body.innerHTML=buildPaymentReceiptHtml(p);
+}
+
+function closePaymentModal(){document.getElementById('payment-modal').classList.remove('active')}
+
+// Close modal on outside click or Escape
+document.getElementById('payment-modal').addEventListener('click',function(e){if(e.target===this)closePaymentModal()});
+if(!document.body.dataset.cfiDebtorHistoryEscapeHandler){
+    document.body.dataset.cfiDebtorHistoryEscapeHandler='true';
+    document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeModal();closePaymentModal()}});
+}
 
 // Bluetooth thermal printer support
 var bluetoothDevice = null;
@@ -590,7 +686,6 @@ w.onload=function(){setTimeout(function(){w.print()},300)};
 
 // Close modal on outside click or Escape
 document.getElementById('order-modal').addEventListener('click',function(e){if(e.target===this)closeModal()});
-document.addEventListener('keydown',function(e){if(e.key==='Escape')closeModal()});
 
 // Prevent form resubmission on back button - but do NOT auto-reload
 if(window.history.replaceState)window.history.replaceState(null,null,window.location.href);

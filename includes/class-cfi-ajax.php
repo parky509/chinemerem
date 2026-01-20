@@ -389,12 +389,25 @@ class CFI_Ajax {
             $order_time = cfi_format_receipt_time($order->order_date, $order->order_time);
         }
 
+        $staff_name = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT display_name FROM {$wpdb->users} WHERE ID = %d",
+                $order->staff_id
+            )
+        );
+
         wp_send_json_success(array(
             'order_number' => $order->order_number,
             'order_date' => $order->order_date,
             'order_time' => $order_time,
             'customer_name' => $order->customer_name,
             'grand_total' => $order->grand_total,
+            'total_amount' => $order->total_amount,
+            'discount_amount' => $order->discount_amount,
+            'payment_method' => $order->payment_method,
+            'transfer_amount' => $order->transfer_amount,
+            'cash_amount' => $order->cash_amount,
+            'staff_name' => $staff_name,
             'items' => $items
         ));
     }
