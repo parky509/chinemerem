@@ -931,7 +931,27 @@ function sendOrderReceipt(){
         alert('No phone number found for this debtor.');
         return;
     }
-    shareReceiptImage('order-print-area', receiptText);
+    if (navigator.share && navigator.canShare) {
+        return shareReceiptImage('order-print-area', receiptText);
+    }
+    var receiptNode = document.getElementById('order-print-area');
+    if (!receiptNode) {
+        alert('Receipt image not available.');
+        return;
+    }
+    html2canvas(receiptNode, { backgroundColor: '#ffffff', scale: 2 }).then(function(canvas) {
+        canvas.toBlob(function(blob) {
+            if (!blob) {
+                alert('Receipt image could not be created.');
+                return;
+            }
+            var reader = new FileReader();
+            reader.onloadend = function() {
+                openWhatsappWithReceipt(reader.result, receiptText);
+            };
+            reader.readAsDataURL(blob);
+        });
+    });
 }
 
 function buildOrderReceiptText(){
@@ -956,6 +976,39 @@ function sendPayReceipt(){
     }
     if (!window.cfiDebtorHasPhone) {
         alert('No phone number found for this debtor.');
+        return;
+    }
+    if (navigator.share && navigator.canShare) {
+        return shareReceiptImage('pay-print-area', receiptText);
+    }
+    var receiptNode = document.getElementById('pay-print-area');
+    if (!receiptNode) {
+        alert('Receipt image not available.');
+        return;
+    }
+    html2canvas(receiptNode, { backgroundColor: '#ffffff', scale: 2 }).then(function(canvas) {
+        canvas.toBlob(function(blob) {
+            if (!blob) {
+                alert('Receipt image could not be created.');
+                return;
+            }
+            var reader = new FileReader();
+            reader.onloadend = function() {
+                openWhatsappWithReceipt(reader.result, receiptText);
+            };
+            reader.readAsDataURL(blob);
+        });
+    });
+}
+
+function openWhatsappWithReceipt(dataUrl, receiptText){
+    var phone = '<?php echo esc_js($debtor->phone ?? ''); ?>';
+    var normalizedPhone = phone.replace(/[^0-9]/g, '');
+    var baseUrl = normalizedPhone ? 'https://wa.me/' + normalizedPhone : 'https://wa.me/';
+    var message = receiptText + '\\n\\nReceipt image (tap to download): ' + dataUrl;
+    var url = baseUrl + '?text=' + encodeURIComponent(message);
+    window.open(url, '_blank');
+}
         return;
     }
     shareReceiptImage('pay-print-area', receiptText);

@@ -69,6 +69,7 @@ class CFI_Ajax {
             'delete_debtor',
             'debtor_order',
             'debtor_payment',
+            'get_debtor_payment_details',
             'get_debtor_history',
             
             // Expenses
@@ -703,6 +704,52 @@ class CFI_Ajax {
         } else {
             wp_send_json_error(array('message' => $result['message']));
         }
+    }
+
+    /**
+     * Get debtor payment details
+     */
+    public function handle_get_debtor_payment_details() {
+        $this->verify_request();
+
+        $payment_id = isset($_POST['payment_id']) ? intval($_POST['payment_id']) : 0;
+        if (!$payment_id) {
+            wp_send_json_error(array('message' => __('Invalid payment ID', 'chinemerem-foods')));
+        }
+
+        global $wpdb;
+        $trans_table = $wpdb->prefix . 'cfi_debtor_transactions';
+        $debtors_table = $wpdb->prefix . 'cfi_debtors';
+
+        $payment = $wpdb->get_row($wpdb->prepare(
+            "SELECT dt.*, d.name as debtor_name, u.display_name as staff_name
+             FROM {$trans_table} dt
+             LEFT JOIN {$debtors_table} d ON dt.debtor_id = d.id
+             LEFT JOIN {$wpdb->users} u ON dt.staff_id = u.ID
+             WHERE dt.id = %d AND dt.transaction_type = 'payment'
+             LIMIT 1",
+            $payment_id
+        ));
+
+        if (!$payment) {
+            wp_send_json_error(array('message' => __('Payment not found', 'chinemerem-foods')));
+        }
+
+        wp_send_json_success(array(
+            'id' => $payment->id,
+            'debtor_name' => $payment->debtor_name,
+            'amount' => $payment->amount,
+            'payment_method' => $payment->payment_method,
+            'cash_amount' => $payment->cash_amount,
+            'transfer_amount' => $payment->transfer_amount,
+            'bank_name' => $payment->bank_name,
+            'home_amount' => $payment->home_calculation_amount,
+            'balance_before' => $payment->balance_before,
+            'balance_after' => $payment->balance_after,
+            'transaction_date' => $payment->transaction_date,
+            'transaction_time' => cfi_format_receipt_time($payment->transaction_date, $payment->transaction_time),
+            'staff_name' => $payment->staff_name
+        ));
     }
     
     /**

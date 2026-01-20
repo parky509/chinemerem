@@ -200,24 +200,7 @@ $icon = $type === 'order' ? 'cart-plus' : ($type === 'payment' ? 'money-check' :
 <button type="button" class="action-btn btn-view" onclick="viewOrder(<?php echo esc_attr($rec->order_id); ?>)"><i class="fas fa-eye"></i></button>
 <button type="button" class="action-btn btn-print" onclick="reprintOrder(<?php echo esc_attr($rec->order_id); ?>)"><i class="fas fa-print"></i></button>
 <?php elseif ($type === 'payment') : ?>
-<button type="button"
-    class="action-btn btn-view"
-    data-payment-id="<?php echo esc_attr($rec->id); ?>"
-    data-debtor-name="<?php echo esc_attr($rec->debtor_name); ?>"
-    data-amount="<?php echo esc_attr($rec->amount); ?>"
-    data-payment-method="<?php echo esc_attr($rec->payment_method); ?>"
-    data-transfer-amount="<?php echo esc_attr($rec->transfer_amount); ?>"
-    data-cash-amount="<?php echo esc_attr($rec->cash_amount); ?>"
-    data-home-amount="<?php echo esc_attr($rec->home_calculation_amount); ?>"
-    data-bank-name="<?php echo esc_attr($rec->bank_name); ?>"
-    data-balance-before="<?php echo esc_attr($rec->balance_before); ?>"
-    data-balance-after="<?php echo esc_attr($rec->balance_after); ?>"
-    data-transaction-date="<?php echo esc_attr($rec->transaction_date); ?>"
-    data-transaction-time="<?php echo esc_attr(cfi_format_receipt_time($rec->transaction_date, $rec->transaction_time)); ?>"
-    data-staff-name="<?php echo esc_attr($rec->staff_name); ?>"
-    onclick="viewPayment(this)">
-    <i class="fas fa-eye"></i>
-</button>
+<button type="button" class="action-btn btn-view" onclick="viewPayment(<?php echo esc_attr($rec->id); ?>)"><i class="fas fa-eye"></i></button>
 <button type="button" class="action-btn btn-print" onclick="reprintPay(<?php echo esc_attr($rec->id); ?>)"><i class="fas fa-print"></i></button>
 <?php else : ?>-<?php endif; ?>
 </td>
@@ -273,6 +256,7 @@ foreach ($history as $rec) {
 ?>
 <script>
 var payData=<?php echo json_encode($pay_data); ?>;
+var cfiAjaxNonce = '<?php echo wp_create_nonce('cfi_nonce'); ?>';
 var cfiCompanyName = 'CHINEMEREM FOODS';
 var cfiCompanyTagline = 'Inventory Management System';
 
@@ -366,36 +350,27 @@ if(d.success){body.innerHTML=buildOrderReceiptHtml(d.data)}else{body.innerHTML='
 
 function closeModal(){document.getElementById('order-modal').classList.remove('active')}
 
-function viewPayment(el){
+function viewPayment(id){
     var modal=document.getElementById('payment-modal'),body=document.getElementById('payment-body');
     modal.classList.add('active');
-    var p = null;
-    if (el && el.dataset) {
-        p = {
-            id: el.dataset.paymentId || '',
-            debtor_name: el.dataset.debtorName || '',
-            amount: el.dataset.amount || 0,
-            payment_method: el.dataset.paymentMethod || 'cash',
-            transfer_amount: el.dataset.transferAmount || 0,
-            cash_amount: el.dataset.cashAmount || 0,
-            home_amount: el.dataset.homeAmount || 0,
-            bank_name: el.dataset.bankName || '',
-            balance_before: el.dataset.balanceBefore || 0,
-            balance_after: el.dataset.balanceAfter || 0,
-            transaction_date: el.dataset.transactionDate || '',
-            transaction_time: el.dataset.transactionTime || '',
-            staff_name: el.dataset.staffName || ''
-        };
-    }
-    if ((!p || !p.id) && el && el.dataset && el.dataset.paymentId) {
-        var key = String(el.dataset.paymentId);
-        p = payData[key] || payData[el.dataset.paymentId];
-    }
-    if (!p) {
-        body.innerHTML='<div style="text-align:center;padding:2rem;color:#991b1b">Payment not found</div>';
-        return;
-    }
-    body.innerHTML=buildPaymentReceiptHtml(p);
+    body.innerHTML='<div style="text-align:center;padding:2rem"><i class="fas fa-spinner fa-spin" style="font-size:2rem;color:#001943"></i><p>Loading...</p></div>';
+    fetch('<?php echo admin_url('admin-ajax.php'); ?>', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'},
+        body: new URLSearchParams({
+            action: 'get_debtor_payment_details',
+            payment_id: id,
+            _ajax_nonce: cfiAjaxNonce
+        })
+    }).then(function(r){return r.json()}).then(function(d){
+        if(d.success){
+            body.innerHTML=buildPaymentReceiptHtml(d.data);
+        }else{
+            body.innerHTML='<div style="text-align:center;padding:2rem;color:#991b1b">'+escapeHtml(d.message||'Payment not found')+'</div>';
+        }
+    }).catch(function(){
+        body.innerHTML='<div style="text-align:center;padding:2rem;color:#991b1b">Error loading payment details</div>';
+    });
 }
 
 function closePaymentModal(){document.getElementById('payment-modal').classList.remove('active')}
