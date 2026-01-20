@@ -326,6 +326,9 @@ function buildPaymentReceiptHtml(p){
     html+='</div>';
     html+='<div class="receipt-divider"></div>';
     html+='<div class="receipt-info"><p><span>New Balance:</span><span class="receipt-amount">₦'+formatReceiptNumber(p.balance_after||0)+'</span></p></div>';
+    if (p.balance_after < 0) {
+        html+='<div class="receipt-info"><p><span>Overpayment Credit:</span><span class="receipt-amount" style="color:#16a34a">₦'+formatReceiptNumber(Math.abs(p.balance_after))+'</span></p></div>';
+    }
     html+='<div class="receipt-footer"><p>Payment received with thanks</p><p>Powered by BendlessTech</p></div>';
     return html;
 }
@@ -543,6 +546,7 @@ function generatePaymentESCPOS(p) {
     if(p.cash_amount>0) text += leftRightBold('Via Cash:', 'N' + formatReceiptNumber(p.cash_amount)) + '\n';
     text += line + '\n';
     text += leftRightBold('NEW BALANCE:', 'N' + formatReceiptNumber(p.balance_after)) + '\n';
+    if(p.balance_after < 0) text += leftRightBold('OVERPAYMENT:', 'N' + formatReceiptNumber(Math.abs(p.balance_after))) + '\n';
     text += line + '\n';
     text += centerText('Payment received with thanks!') + '\n';
     text += centerText('Powered by BendlessTech') + '\n';
@@ -676,6 +680,7 @@ h+='@media print{.no-print{display:none !important}}';
     h+='<div class="total">';
     var balColor=parseFloat(p.balance_after)>0?'#cc0000':'#008800';
      h+='<p style="color:'+balColor+'"><span>NEW BALANCE:</span><span class="receipt-amount">N'+formatReceiptNumber(p.balance_after)+'</span></p>';
+     if(parseFloat(p.balance_after)<0){h+='<p style="color:#008800"><span>OVERPAYMENT:</span><span class="receipt-amount">N'+formatReceiptNumber(Math.abs(p.balance_after))+'</span></p>'}
     h+='</div>';
     h+='<div class="divider"></div>';
      h+='<div class="footer"><p>Payment received with thanks!</p><p style="margin-top:5px">Powered by BendlessTech</p></div>';

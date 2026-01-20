@@ -77,6 +77,10 @@ $cashout_records = CFI_Financial::get_cashout($today);
                     <input type="number" id="cashout-amount" class="cfi-input" min="0" step="0.01" required>
                 </div>
                 <div class="cfi-form-group" style="flex: 1; min-width: 200px; margin: 0;">
+                    <label for="cashout-name"><?php esc_html_e('Name', 'chinemerem-foods'); ?></label>
+                    <input type="text" id="cashout-name" class="cfi-input" placeholder="<?php esc_attr_e('Enter recipient name', 'chinemerem-foods'); ?>" required>
+                </div>
+                <div class="cfi-form-group" style="flex: 1; min-width: 200px; margin: 0;">
                     <label><?php esc_html_e('Bank', 'chinemerem-foods'); ?></label>
                     <div class="cfi-bank-options" style="display: block; background: none; padding: 0;">
                         <label class="cfi-bank-option">
@@ -105,6 +109,7 @@ $cashout_records = CFI_Financial::get_cashout($today);
                         <tr>
                             <th><?php esc_html_e('Time', 'chinemerem-foods'); ?></th>
                             <th><?php esc_html_e('Amount (₦)', 'chinemerem-foods'); ?></th>
+                            <th><?php esc_html_e('Name', 'chinemerem-foods'); ?></th>
                             <th><?php esc_html_e('Bank', 'chinemerem-foods'); ?></th>
                             <th><?php esc_html_e('Staff', 'chinemerem-foods'); ?></th>
                         </tr>
@@ -112,7 +117,7 @@ $cashout_records = CFI_Financial::get_cashout($today);
                     <tbody>
                         <?php if (empty($cashout_records)) : ?>
                         <tr>
-                            <td colspan="4" style="text-align: center; padding: 2rem;">
+                            <td colspan="5" style="text-align: center; padding: 2rem;">
                                 <?php esc_html_e('No cash out records today', 'chinemerem-foods'); ?>
                             </td>
                         </tr>
@@ -125,6 +130,7 @@ $cashout_records = CFI_Financial::get_cashout($today);
                         <tr>
                             <td data-label="<?php esc_attr_e('Time', 'chinemerem-foods'); ?>"><?php echo esc_html(substr($record->cashout_time, 0, 5)); ?></td>
                             <td data-label="<?php esc_attr_e('Amount', 'chinemerem-foods'); ?>"><?php echo esc_html(CFI_Products::format_price($record->amount)); ?></td>
+                            <td data-label="<?php esc_attr_e('Name', 'chinemerem-foods'); ?>"><?php echo esc_html($record->recipient_name ?: '-'); ?></td>
                             <td data-label="<?php esc_attr_e('Bank', 'chinemerem-foods'); ?>"><?php echo esc_html($record->bank_name); ?></td>
                             <td data-label="<?php esc_attr_e('Staff', 'chinemerem-foods'); ?>"><?php echo esc_html($record->staff_name); ?></td>
                         </tr>
@@ -135,7 +141,7 @@ $cashout_records = CFI_Financial::get_cashout($today);
                     <tfoot>
                         <tr style="background: var(--cfi-primary); color: var(--cfi-white);">
                             <td><strong><?php esc_html_e('Total', 'chinemerem-foods'); ?></strong></td>
-                            <td colspan="3"><strong><?php echo esc_html(CFI_Products::format_price($total)); ?></strong></td>
+                            <td colspan="4"><strong><?php echo esc_html(CFI_Products::format_price($total)); ?></strong></td>
                         </tr>
                     </tfoot>
                     <?php endif; ?>
@@ -153,10 +159,17 @@ jQuery(document).ready(function($) {
         const btn = form.find('button[type="submit"]');
         const amount = parseFloat($('#cashout-amount').val()) || 0;
         const bank = $('input[name="cashout-bank"]:checked').val();
+        const name = $('#cashout-name').val().trim();
         
         // Validate no negative values
         if (amount < 0) {
             CFI.negativeValuePopup.show(['Amount']);
+            return;
+        }
+
+        if (!name) {
+            CFI.toast.warning('Please enter a name for this cash out');
+            $('#cashout-name').focus();
             return;
         }
         
@@ -169,7 +182,8 @@ jQuery(document).ready(function($) {
         
         CFI.ajax.request('add_cashout', {
             amount: amount,
-            bank_name: bank
+            bank_name: bank,
+            recipient_name: name
         }).then(function(data) {
             btn.prop('disabled', false).html('<i class="fas fa-paper-plane"></i> Register Cash Out');
             CFI.successPopup.show({
@@ -177,6 +191,7 @@ jQuery(document).ready(function($) {
                 message: data.message || 'Cash out has been recorded successfully.',
                 details: {
                     'Amount': '₦' + amount.toLocaleString('en-NG', {minimumFractionDigits: 0}),
+                    'Name': name,
                     'Bank': bank
                 }
             });

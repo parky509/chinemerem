@@ -936,12 +936,17 @@ class CFI_Ajax {
         
         $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
         $bank_name = isset($_POST['bank_name']) ? sanitize_text_field(wp_unslash($_POST['bank_name'])) : 'Moniepoint MFB';
+        $recipient_name = isset($_POST['recipient_name']) ? sanitize_text_field(wp_unslash($_POST['recipient_name'])) : '';
         
         if ($amount <= 0) {
             wp_send_json_error(array('message' => __('Invalid amount', 'chinemerem-foods')));
         }
         
-        $result = CFI_Financial::add_cashout($amount, $bank_name);
+        if ($recipient_name === '') {
+            wp_send_json_error(array('message' => __('Recipient name is required', 'chinemerem-foods')));
+        }
+        
+        $result = CFI_Financial::add_cashout($amount, $bank_name, $recipient_name);
         
         if ($result) {
             wp_send_json_success(array('message' => __('Cash out recorded successfully', 'chinemerem-foods')));

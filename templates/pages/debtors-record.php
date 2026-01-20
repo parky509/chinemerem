@@ -224,7 +224,7 @@ if (isset($_POST['cfi_clear_debt_submit']) && wp_verify_nonce($_POST['cfi_clear_
             $debtor_id,
             floatval($debtor->total_debt)
         ) : 0;
-        if ($debtor && $total_payment <= $balance_before) {
+        if ($debtor) {
             $new_balance = $balance_before - $total_payment;
             
             // CRITICAL: Direct SQL update without any caching
@@ -292,6 +292,7 @@ if (isset($_POST['cfi_clear_debt_submit']) && wp_verify_nonce($_POST['cfi_clear_
                 'bank_name' => $bank_name,
                 'balance_before' => $balance_before,
                 'new_balance' => $new_balance,
+                'overpayment' => max(0, -$new_balance),
                 'staff' => wp_get_current_user()->display_name
             ), 300);
             
@@ -666,6 +667,7 @@ foreach ($order_receipt['items'] as $item) {
 </div>
 </div>
 <div class="modal-footer">
+<button type="button" onclick="sendOrderReceipt()" class="btn" style="background:#001943;color:#fff"><i class="fab fa-whatsapp"></i> Send Receipt</button>
 <button onclick="printOrderReceipt()" class="btn" style="background:#7c3aed;color:#fff"><i class="fas fa-print"></i> Print</button>
 <button onclick="closeOrderModal()" class="btn btn-success"><i class="fas fa-check"></i> Done</button>
 </div>
@@ -821,6 +823,9 @@ function closeOrderModal(){document.getElementById('order-modal').style.display=
 <div class="receipt-divider"></div>
 <div class="receipt-info">
     <p><span>New Balance:</span><span class="receipt-amount" style="color:<?php echo $payment_receipt['new_balance'] > 0 ? '#dc2626' : '#16a34a'; ?>">₦<?php echo number_format($payment_receipt['new_balance'], 0); ?></span></p>
+    <?php if (!empty($payment_receipt['overpayment'])) : ?>
+    <p><span>Overpayment Credit:</span><span class="receipt-amount" style="color:#16a34a">₦<?php echo number_format($payment_receipt['overpayment'], 0); ?></span></p>
+    <?php endif; ?>
 </div>
 <div class="receipt-footer">
     <p>Payment received with thanks</p>
@@ -828,6 +833,7 @@ function closeOrderModal(){document.getElementById('order-modal').style.display=
 </div>
 </div>
 <div class="modal-footer">
+<button type="button" onclick="sendPayReceipt()" class="btn" style="background:#001943;color:#fff"><i class="fab fa-whatsapp"></i> Send Receipt</button>
 <button onclick="printPayReceipt()" class="btn" style="background:#7c3aed;color:#fff"><i class="fas fa-print"></i> Print</button>
 <button onclick="closePayModal()" class="btn btn-success"><i class="fas fa-check"></i> Done</button>
 </div>
@@ -912,6 +918,73 @@ h+='<div class="footer"><p>Payment received with thanks!</p><p style="margin-top
 h+='</body></html>';
 w.document.write(h);w.document.close();
 w.onload=function(){setTimeout(function(){w.print()},300)};
+}
+
+function sendOrderReceipt(){
+    var receiptText = buildOrderReceiptText();
+    if (!receiptText) {
+        alert('Unable to build receipt message');
+        return;
+    }
+    var phone = '<?php echo esc_js($debtor->phone ?? ''); ?>';
+    var normalizedPhone = phone.replace(/[^0-9]/g, '');
+    var baseUrl = normalizedPhone ? 'https://wa.me/' + normalizedPhone : 'https://wa.me/';
+    var url = baseUrl + '?text=' + encodeURIComponent(receiptText);
+    window.open(url, '_blank');
+}
+
+function buildOrderReceiptText(){
+    var lines = [];
+    lines.push('CHINEMEREM FOODS');
+    lines.push('Credit Order Receipt');
+    lines.push('Order: <?php echo esc_js($order_receipt['order_number']); ?>');
+    lines.push('Date: <?php echo esc_js($order_receipt['date']); ?>');
+    lines.push('Time: <?php echo esc_js($order_receipt['time']); ?>');
+    lines.push('Debtor: <?php echo esc_js($order_receipt['debtor_name']); ?>');
+    lines.push('Amount: ₦<?php echo esc_js(number_format($order_receipt['total'], 0)); ?>');
+    lines.push('New Balance: ₦<?php echo esc_js(number_format($order_receipt['new_balance'], 0)); ?>');
+    lines.push('Powered by BendlessTech');
+    return lines.join('\\n');
+}
+
+function sendPayReceipt(){
+    var receiptText = buildPaymentReceiptText();
+    if (!receiptText) {
+        alert('Unable to build receipt message');
+        return;
+    }
+    var phone = '<?php echo esc_js($debtor->phone ?? ''); ?>';
+    var normalizedPhone = phone.replace(/[^0-9]/g, '');
+    var baseUrl = normalizedPhone ? 'https://wa.me/' + normalizedPhone : 'https://wa.me/';
+    var url = baseUrl + '?text=' + encodeURIComponent(receiptText);
+    window.open(url, '_blank');
+}
+
+function buildPaymentReceiptText(){
+    var lines = [];
+    lines.push('CHINEMEREM FOODS');
+    lines.push('Debt Payment Receipt');
+    lines.push('Receipt: <?php echo esc_js($payment_receipt['receipt_number']); ?>');
+    lines.push('Date: <?php echo esc_js($payment_receipt['date']); ?>');
+    lines.push('Time: <?php echo esc_js($payment_receipt['time']); ?>');
+    lines.push('Debtor: <?php echo esc_js($payment_receipt['debtor_name']); ?>');
+    lines.push('Amount Paid: ₦<?php echo esc_js(number_format($payment_receipt['payment_amount'], 0)); ?>');
+    <?php if ($payment_receipt['transfer_amount'] > 0) : ?>
+    lines.push('Transfer: ₦<?php echo esc_js(number_format($payment_receipt['transfer_amount'], 0)); ?>');
+    lines.push('Bank: <?php echo esc_js($payment_receipt['bank_name']); ?>');
+    <?php endif; ?>
+    <?php if ($payment_receipt['cash_amount'] > 0) : ?>
+    lines.push('Cash: ₦<?php echo esc_js(number_format($payment_receipt['cash_amount'], 0)); ?>');
+    <?php endif; ?>
+    <?php if ($payment_receipt['home_amount'] > 0) : ?>
+    lines.push('Home Calc: ₦<?php echo esc_js(number_format($payment_receipt['home_amount'], 0)); ?>');
+    <?php endif; ?>
+    lines.push('New Balance: ₦<?php echo esc_js(number_format($payment_receipt['new_balance'], 0)); ?>');
+    <?php if (!empty($payment_receipt['overpayment'])) : ?>
+    lines.push('Overpayment Credit: ₦<?php echo esc_js(number_format($payment_receipt['overpayment'], 0)); ?>');
+    <?php endif; ?>
+    lines.push('Powered by BendlessTech');
+    return lines.join('\\n');
 }
 function closePayModal(){document.getElementById('pay-modal').style.display='none';window.location.href='<?php echo esc_url($history_redirect_url); ?>'}
 </script>

@@ -266,7 +266,7 @@ class CFI_Financial {
     /**
      * Add cash out record
      */
-    public static function add_cashout($amount, $bank_name) {
+    public static function add_cashout($amount, $bank_name, $recipient_name = '') {
         global $wpdb;
         $table = CFI_Database::get_table('cashout');
         
@@ -279,16 +279,17 @@ class CFI_Financial {
             array(
                 'amount' => $amount,
                 'bank_name' => $bank_name,
+                'recipient_name' => $recipient_name,
                 'cashout_date' => $date,
                 'cashout_time' => $time,
                 'staff_id' => $staff_id,
             ),
-            array('%f', '%s', '%s', '%s', '%d')
+            array('%f', '%s', '%s', '%s', '%s', '%d')
         );
         
         if ($result) {
             // Record transfer
-            CFI_Orders::record_transfer($wpdb->insert_id, 'cashout', $amount, $bank_name, $staff_id);
+            CFI_Orders::record_transfer($wpdb->insert_id, 'cashout', $amount, $bank_name, $staff_id, $recipient_name);
             
             // Update financial summary
             self::recalculate($date);

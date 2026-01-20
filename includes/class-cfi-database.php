@@ -305,6 +305,7 @@ class CFI_Database {
         $sql_cashout = "CREATE TABLE IF NOT EXISTS $table_cashout (
             id bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
             amount decimal(15,2) NOT NULL DEFAULT 0.00,
+            recipient_name varchar(255) NOT NULL DEFAULT '',
             bank_name varchar(100) NOT NULL,
             cashout_date date NOT NULL,
             cashout_time time NOT NULL,
@@ -314,6 +315,12 @@ class CFI_Database {
             KEY cashout_date (cashout_date)
         ) $charset_collate;";
         dbDelta($sql_cashout);
+        
+        $cashout_table = $wpdb->prefix . 'cfi_cashout';
+        $row = $wpdb->get_results("SHOW COLUMNS FROM `$cashout_table` LIKE 'recipient_name'");
+        if (empty($row)) {
+            $wpdb->query("ALTER TABLE `$cashout_table` ADD COLUMN `recipient_name` varchar(255) NOT NULL DEFAULT '' AFTER `amount`");
+        }
         
         // Financial summary table
         $table_financial = $wpdb->prefix . 'cfi_financial_summary';

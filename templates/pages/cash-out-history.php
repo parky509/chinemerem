@@ -48,6 +48,7 @@ if (!defined('ABSPATH')) {
                             <th><?php esc_html_e('Date', 'chinemerem-foods'); ?></th>
                             <th><?php esc_html_e('Time', 'chinemerem-foods'); ?></th>
                             <th><?php esc_html_e('Amount', 'chinemerem-foods'); ?></th>
+                            <th><?php esc_html_e('Name', 'chinemerem-foods'); ?></th>
                             <th><?php esc_html_e('Bank', 'chinemerem-foods'); ?></th>
                             <th><?php esc_html_e('Staff', 'chinemerem-foods'); ?></th>
                         </tr>
@@ -80,7 +81,7 @@ jQuery(document).ready(function($) {
             tfoot.empty();
             
             if (!data.history || data.history.length === 0) {
-                tbody.append('<tr><td colspan="5" style="text-align: center;"><?php esc_html_e('No cash out records found', 'chinemerem-foods'); ?></td></tr>');
+                tbody.append('<tr><td colspan="6" style="text-align: center;"><?php esc_html_e('No cash out records found', 'chinemerem-foods'); ?></td></tr>');
                 return;
             }
             
@@ -96,6 +97,7 @@ jQuery(document).ready(function($) {
                         <td data-label="<?php esc_attr_e('Amount', 'chinemerem-foods'); ?>">
                             <strong style="color: var(--cfi-danger);">${CFI.utils.formatCurrency(record.amount)}</strong>
                         </td>
+                        <td data-label="<?php esc_attr_e('Name', 'chinemerem-foods'); ?>">${record.customer_name || '-'}</td>
                         <td data-label="<?php esc_attr_e('Bank', 'chinemerem-foods'); ?>">
                             <i class="fas fa-university"></i> ${record.bank_name || '-'}
                         </td>
@@ -107,7 +109,7 @@ jQuery(document).ready(function($) {
             tfoot.append(`
                 <tr style="background: var(--cfi-primary); color: white;">
                     <td colspan="2"><strong><?php esc_html_e('Total Cash Out', 'chinemerem-foods'); ?></strong></td>
-                    <td colspan="3"><strong style="font-size: 1.25rem;">${CFI.utils.formatCurrency(total)}</strong></td>
+                    <td colspan="4"><strong style="font-size: 1.25rem;">${CFI.utils.formatCurrency(total)}</strong></td>
                 </tr>
             `);
         }).catch(function(error) {

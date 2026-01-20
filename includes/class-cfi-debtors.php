@@ -184,10 +184,6 @@ class CFI_Debtors {
             return array('success' => false, 'message' => __('Invalid payment amount', 'chinemerem-foods'));
         }
         
-        if ($total_payment > $balance_before) {
-            return array('success' => false, 'message' => __('Payment exceeds debt balance', 'chinemerem-foods'));
-        }
-        
         $new_balance = $balance_before - $total_payment;
         
         // Update debtor balance
