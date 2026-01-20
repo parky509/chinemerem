@@ -200,7 +200,24 @@ $icon = $type === 'order' ? 'cart-plus' : ($type === 'payment' ? 'money-check' :
 <button type="button" class="action-btn btn-view" onclick="viewOrder(<?php echo esc_attr($rec->order_id); ?>)"><i class="fas fa-eye"></i></button>
 <button type="button" class="action-btn btn-print" onclick="reprintOrder(<?php echo esc_attr($rec->order_id); ?>)"><i class="fas fa-print"></i></button>
 <?php elseif ($type === 'payment') : ?>
-<button type="button" class="action-btn btn-view" data-payment-id="<?php echo esc_attr($rec->id); ?>" data-payment="<?php echo esc_attr(wp_json_encode($pay_data[$rec->id] ?? array())); ?>" onclick="viewPayment(this)"><i class="fas fa-eye"></i></button>
+<button type="button"
+    class="action-btn btn-view"
+    data-payment-id="<?php echo esc_attr($rec->id); ?>"
+    data-debtor-name="<?php echo esc_attr($rec->debtor_name); ?>"
+    data-amount="<?php echo esc_attr($rec->amount); ?>"
+    data-payment-method="<?php echo esc_attr($rec->payment_method); ?>"
+    data-transfer-amount="<?php echo esc_attr($rec->transfer_amount); ?>"
+    data-cash-amount="<?php echo esc_attr($rec->cash_amount); ?>"
+    data-home-amount="<?php echo esc_attr($rec->home_calculation_amount); ?>"
+    data-bank-name="<?php echo esc_attr($rec->bank_name); ?>"
+    data-balance-before="<?php echo esc_attr($rec->balance_before); ?>"
+    data-balance-after="<?php echo esc_attr($rec->balance_after); ?>"
+    data-transaction-date="<?php echo esc_attr($rec->transaction_date); ?>"
+    data-transaction-time="<?php echo esc_attr(cfi_format_receipt_time($rec->transaction_date, $rec->transaction_time)); ?>"
+    data-staff-name="<?php echo esc_attr($rec->staff_name); ?>"
+    onclick="viewPayment(this)">
+    <i class="fas fa-eye"></i>
+</button>
 <button type="button" class="action-btn btn-print" onclick="reprintPay(<?php echo esc_attr($rec->id); ?>)"><i class="fas fa-print"></i></button>
 <?php else : ?>-<?php endif; ?>
 </td>
@@ -304,10 +321,13 @@ function buildOrderReceiptHtml(o){
 
 function buildPaymentReceiptHtml(p){
     var method=String(p.payment_method||'cash').replace(/_/g,' ');
-    var transferLine=p.transfer_amount>0?'<p><span>Transfer:</span><span class="receipt-amount">₦'+formatReceiptNumber(p.transfer_amount)+'</span></p>':'';
-    var cashLine=p.cash_amount>0?'<p><span>Cash:</span><span class="receipt-amount">₦'+formatReceiptNumber(p.cash_amount)+'</span></p>':'';
-    var homeLine=p.home_amount>0?'<p><span>Home Calculation:</span><span class="receipt-amount">₦'+formatReceiptNumber(p.home_amount)+'</span></p>':'';
-    var bankLine=p.bank_name&&p.transfer_amount>0?'<p><span>Bank:</span><span>'+escapeHtml(p.bank_name)+'</span></p>':'';
+    var transferAmount=parseFloat(p.transfer_amount)||0;
+    var cashAmount=parseFloat(p.cash_amount)||0;
+    var homeAmount=parseFloat(p.home_amount)||0;
+    var transferLine=transferAmount>0?'<p><span>Transfer:</span><span class="receipt-amount">₦'+formatReceiptNumber(transferAmount)+'</span></p>':'';
+    var cashLine=cashAmount>0?'<p><span>Cash:</span><span class="receipt-amount">₦'+formatReceiptNumber(cashAmount)+'</span></p>':'';
+    var homeLine=homeAmount>0?'<p><span>Home Calculation:</span><span class="receipt-amount">₦'+formatReceiptNumber(homeAmount)+'</span></p>':'';
+    var bankLine=p.bank_name&&transferAmount>0?'<p><span>Bank:</span><span>'+escapeHtml(p.bank_name)+'</span></p>':'';
     var html='';
     html+='<div class="receipt-company"><h2>'+cfiCompanyName+'</h2><p>'+cfiCompanyTagline+'</p></div>';
     html+='<div class="receipt-divider"></div>';
@@ -349,16 +369,25 @@ function closeModal(){document.getElementById('order-modal').classList.remove('a
 function viewPayment(el){
     var modal=document.getElementById('payment-modal'),body=document.getElementById('payment-body');
     modal.classList.add('active');
-    var rawPayload = el && el.dataset ? el.dataset.payment : '';
     var p = null;
-    if (rawPayload) {
-        try {
-            p = JSON.parse(rawPayload);
-        } catch (error) {
-            console.warn('Payment payload parse failed', error);
-        }
+    if (el && el.dataset) {
+        p = {
+            id: el.dataset.paymentId || '',
+            debtor_name: el.dataset.debtorName || '',
+            amount: el.dataset.amount || 0,
+            payment_method: el.dataset.paymentMethod || 'cash',
+            transfer_amount: el.dataset.transferAmount || 0,
+            cash_amount: el.dataset.cashAmount || 0,
+            home_amount: el.dataset.homeAmount || 0,
+            bank_name: el.dataset.bankName || '',
+            balance_before: el.dataset.balanceBefore || 0,
+            balance_after: el.dataset.balanceAfter || 0,
+            transaction_date: el.dataset.transactionDate || '',
+            transaction_time: el.dataset.transactionTime || '',
+            staff_name: el.dataset.staffName || ''
+        };
     }
-    if (!p && el && el.dataset && el.dataset.paymentId) {
+    if ((!p || !p.id) && el && el.dataset && el.dataset.paymentId) {
         var key = String(el.dataset.paymentId);
         p = payData[key] || payData[el.dataset.paymentId];
     }

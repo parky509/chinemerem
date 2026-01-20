@@ -931,29 +931,7 @@ function sendOrderReceipt(){
         alert('No phone number found for this debtor.');
         return;
     }
-    if (!navigator.share) {
-        alert('Image sharing is not supported in this browser. Use the Print button instead.');
-        return;
-    }
-    var receiptNode = document.getElementById('order-print-area');
-    if (!receiptNode) {
-        alert('Receipt image not available.');
-        return;
-    }
-    html2canvas(receiptNode, { backgroundColor: '#ffffff', scale: 2 }).then(function(canvas) {
-        canvas.toBlob(function(blob) {
-            if (!blob) {
-                alert('Receipt image could not be created.');
-                return;
-            }
-            var file = new File([blob], 'receipt.png', { type: 'image/png' });
-            navigator.share({
-                title: 'Receipt',
-                text: receiptText,
-                files: [file]
-            });
-        });
-    });
+    shareReceiptImage('order-print-area', receiptText);
 }
 
 function buildOrderReceiptText(){
@@ -980,11 +958,15 @@ function sendPayReceipt(){
         alert('No phone number found for this debtor.');
         return;
     }
+    shareReceiptImage('pay-print-area', receiptText);
+}
+
+function shareReceiptImage(elementId, receiptText){
     if (!navigator.share) {
         alert('Image sharing is not supported in this browser. Use the Print button instead.');
         return;
     }
-    var receiptNode = document.getElementById('pay-print-area');
+    var receiptNode = document.getElementById(elementId);
     if (!receiptNode) {
         alert('Receipt image not available.');
         return;
@@ -1000,6 +982,8 @@ function sendPayReceipt(){
                 title: 'Receipt',
                 text: receiptText,
                 files: [file]
+            }).catch(function(error){
+                console.warn('Share cancelled', error);
             });
         });
     });
