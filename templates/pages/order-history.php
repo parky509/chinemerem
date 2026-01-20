@@ -427,6 +427,7 @@ async function printToBluetoothPrinter(text) {
         return true;
     } catch (error) {
         console.error('Print failed:', error);
+        printerCharacteristic = null;
         return false;
     }
 }
@@ -515,7 +516,6 @@ async function printReceipt() {
         var receiptText = generateESCPOSReceiptFromOrder(currentPrintOrder);
         var printed = await printToBluetoothPrinter(receiptText);
         if (printed) {
-            alert('Receipt printed successfully!');
             return;
         }
     }

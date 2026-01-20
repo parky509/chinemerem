@@ -32,6 +32,8 @@ $debtors_table = $wpdb->prefix . 'cfi_debtors';
 $orders_table = $wpdb->prefix . 'cfi_orders';
 $order_items_table = $wpdb->prefix . 'cfi_order_items';
 $trans_table = $wpdb->prefix . 'cfi_debtor_transactions';
+$debtor_record_url = home_url('/debtors-record/');
+$debtor_record_done_url = add_query_arg('t', time(), $debtor_record_url);
 
 if (!function_exists('cfi_get_latest_debtor_balance')) {
     function cfi_get_latest_debtor_balance($wpdb, $trans_table, $debtor_id, $fallback) {
@@ -706,7 +708,6 @@ if ('bluetooth' in navigator) {
     
     var printed = await printToBluetoothPrinter(text);
     if (printed) {
-        alert('Receipt printed successfully!');
         return;
     }
 }
@@ -782,7 +783,7 @@ h+='</body></html>';
 w.document.write(h);w.document.close();
 w.onload=function(){setTimeout(function(){w.print()},300)};
 }
-function closeOrderModal(){document.getElementById('order-modal').style.display='none';window.location.href='<?php echo esc_url($history_redirect_url); ?>'}
+function closeOrderModal(){document.getElementById('order-modal').style.display='none';window.location.href='<?php echo esc_url($debtor_record_done_url); ?>'}
 </script>
 <?php endif; ?>
 
@@ -869,7 +870,6 @@ if ('bluetooth' in navigator) {
     
     var printed = await printToBluetoothPrinter(text);
     if (printed) {
-        alert('Receipt printed successfully!');
         return;
     }
 }
@@ -926,6 +926,10 @@ function sendOrderReceipt(){
         alert('Unable to build receipt message');
         return;
     }
+    if (!window.cfiDebtorHasPhone) {
+        alert('No phone number found for this debtor.');
+        return;
+    }
     var phone = '<?php echo esc_js($debtor->phone ?? ''); ?>';
     var normalizedPhone = phone.replace(/[^0-9]/g, '');
     var baseUrl = normalizedPhone ? 'https://wa.me/' + normalizedPhone : 'https://wa.me/';
@@ -951,6 +955,10 @@ function sendPayReceipt(){
     var receiptText = buildPaymentReceiptText();
     if (!receiptText) {
         alert('Unable to build receipt message');
+        return;
+    }
+    if (!window.cfiDebtorHasPhone) {
+        alert('No phone number found for this debtor.');
         return;
     }
     var phone = '<?php echo esc_js($debtor->phone ?? ''); ?>';
@@ -986,7 +994,7 @@ function buildPaymentReceiptText(){
     lines.push('Powered by BendlessTech');
     return lines.join('\\n');
 }
-function closePayModal(){document.getElementById('pay-modal').style.display='none';window.location.href='<?php echo esc_url($history_redirect_url); ?>'}
+function closePayModal(){document.getElementById('pay-modal').style.display='none';window.location.href='<?php echo esc_url($debtor_record_done_url); ?>'}
 </script>
 <?php endif; ?>
 
@@ -994,6 +1002,7 @@ function closePayModal(){document.getElementById('pay-modal').style.display='non
 var cfiDebtorAjaxUrl = '<?php echo admin_url('admin-ajax.php'); ?>';
 var cfiDebtorNonce = '<?php echo wp_create_nonce('cfi_nonce'); ?>';
 var cfiSelectedDebtorId = <?php echo $selected_debtor ? (int) $selected_debtor->id : 'null'; ?>;
+var cfiDebtorHasPhone = <?php echo isset($debtor) && !empty($debtor->phone) ? 'true' : 'false'; ?>;
 var cfiCurrencySymbol = '₦';
 var cfiLocale = (typeof Intl !== 'undefined' && Intl.NumberFormat && Intl.NumberFormat.supportedLocalesOf(['en-NG']).length)
     ? 'en-NG'
@@ -1170,6 +1179,7 @@ async function printToBluetoothPrinter(text) {
         return true;
     } catch (error) {
         console.error('Print failed:', error);
+        printerCharacteristic = null;
         return false;
     }
 }

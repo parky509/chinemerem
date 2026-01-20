@@ -260,7 +260,8 @@ var cfiCompanyName = 'CHINEMEREM FOODS';
 var cfiCompanyTagline = 'Inventory Management System';
 
 function escapeHtml(value) {
-    return String(value ?? '').replace(/[&<>"']/g, function(match) {
+    var safeValue = (value === undefined || value === null) ? '' : value;
+    return String(safeValue).replace(/[&<>"']/g, function(match) {
         return {
             '&': '&amp;',
             '<': '&lt;',
@@ -348,7 +349,11 @@ function closeModal(){document.getElementById('order-modal').classList.remove('a
 function viewPayment(id){
     var modal=document.getElementById('payment-modal'),body=document.getElementById('payment-body');
     modal.classList.add('active');
-    var p=payData[id];
+    var key = String(id);
+    var p=payData[key] || payData[id];
+    if (!payData[key] && payData[id]) {
+        console.warn('Payment lookup fallback used for ID', id);
+    }
     if(!p){body.innerHTML='<div style="text-align:center;padding:2rem;color:#991b1b">Payment not found</div>';return}
     body.innerHTML=buildPaymentReceiptHtml(p);
 }
@@ -426,6 +431,7 @@ async function printToBluetoothPrinter(text) {
         return true;
     } catch (error) {
         console.error('Print failed:', error);
+        printerCharacteristic = null;
         return false;
     }
 }
@@ -567,7 +573,6 @@ if ('bluetooth' in navigator) {
     var receiptText = generateOrderESCPOS(o);
     var printed = await printToBluetoothPrinter(receiptText);
     if (printed) {
-        alert('Receipt printed successfully!');
         return;
     }
 }
@@ -634,7 +639,6 @@ if ('bluetooth' in navigator) {
     var receiptText = generatePaymentESCPOS(p);
     var printed = await printToBluetoothPrinter(receiptText);
     if (printed) {
-        alert('Receipt printed successfully!');
         return;
     }
 }

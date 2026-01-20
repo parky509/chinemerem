@@ -1486,7 +1486,6 @@ async function printOfflineReceipt() {
         var receiptText = generateOfflineESCPOSReceipt(receipt);
         var printed = await printToBluetoothPrinter(receiptText);
         if (printed) {
-            alert('Receipt printed successfully!');
             return;
         }
     }
@@ -1621,7 +1620,6 @@ async function printToBluetoothPrinter(text) {
     if (!printerCharacteristic) {
         const connected = await connectBluetoothPrinter();
         if (!connected) {
-            alert('Could not connect to Bluetooth printer. Using browser print instead.');
             return false;
         }
     }
@@ -1652,6 +1650,7 @@ async function printToBluetoothPrinter(text) {
         return true;
     } catch (error) {
         console.error('Print failed:', error);
+        printerCharacteristic = null;
         return false;
     }
 }
@@ -1754,7 +1753,6 @@ async function printReceipt() {
         var receiptText = generateESCPOSReceipt();
         var printed = await printToBluetoothPrinter(receiptText);
         if (printed) {
-            alert('Receipt printed successfully!');
             return;
         }
     }
