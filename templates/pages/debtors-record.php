@@ -377,6 +377,7 @@ $page_uid = substr(md5(microtime(true)), 0, 8);
 <meta name="page-uid" content="<?php echo $page_uid; ?>">
 <title>Debtors Record</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <style>
 *{box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;margin:0;padding:0;background:#f8fafc}
@@ -930,11 +931,29 @@ function sendOrderReceipt(){
         alert('No phone number found for this debtor.');
         return;
     }
-    var phone = '<?php echo esc_js($debtor->phone ?? ''); ?>';
-    var normalizedPhone = phone.replace(/[^0-9]/g, '');
-    var baseUrl = normalizedPhone ? 'https://wa.me/' + normalizedPhone : 'https://wa.me/';
-    var url = baseUrl + '?text=' + encodeURIComponent(receiptText);
-    window.open(url, '_blank');
+    if (!navigator.share) {
+        alert('Image sharing is not supported in this browser. Use the Print button instead.');
+        return;
+    }
+    var receiptNode = document.getElementById('order-print-area');
+    if (!receiptNode) {
+        alert('Receipt image not available.');
+        return;
+    }
+    html2canvas(receiptNode, { backgroundColor: '#ffffff', scale: 2 }).then(function(canvas) {
+        canvas.toBlob(function(blob) {
+            if (!blob) {
+                alert('Receipt image could not be created.');
+                return;
+            }
+            var file = new File([blob], 'receipt.png', { type: 'image/png' });
+            navigator.share({
+                title: 'Receipt',
+                text: receiptText,
+                files: [file]
+            });
+        });
+    });
 }
 
 function buildOrderReceiptText(){
@@ -961,11 +980,29 @@ function sendPayReceipt(){
         alert('No phone number found for this debtor.');
         return;
     }
-    var phone = '<?php echo esc_js($debtor->phone ?? ''); ?>';
-    var normalizedPhone = phone.replace(/[^0-9]/g, '');
-    var baseUrl = normalizedPhone ? 'https://wa.me/' + normalizedPhone : 'https://wa.me/';
-    var url = baseUrl + '?text=' + encodeURIComponent(receiptText);
-    window.open(url, '_blank');
+    if (!navigator.share) {
+        alert('Image sharing is not supported in this browser. Use the Print button instead.');
+        return;
+    }
+    var receiptNode = document.getElementById('pay-print-area');
+    if (!receiptNode) {
+        alert('Receipt image not available.');
+        return;
+    }
+    html2canvas(receiptNode, { backgroundColor: '#ffffff', scale: 2 }).then(function(canvas) {
+        canvas.toBlob(function(blob) {
+            if (!blob) {
+                alert('Receipt image could not be created.');
+                return;
+            }
+            var file = new File([blob], 'receipt.png', { type: 'image/png' });
+            navigator.share({
+                title: 'Receipt',
+                text: receiptText,
+                files: [file]
+            });
+        });
+    });
 }
 
 function buildPaymentReceiptText(){

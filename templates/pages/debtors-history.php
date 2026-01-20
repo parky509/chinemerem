@@ -200,7 +200,7 @@ $icon = $type === 'order' ? 'cart-plus' : ($type === 'payment' ? 'money-check' :
 <button type="button" class="action-btn btn-view" onclick="viewOrder(<?php echo esc_attr($rec->order_id); ?>)"><i class="fas fa-eye"></i></button>
 <button type="button" class="action-btn btn-print" onclick="reprintOrder(<?php echo esc_attr($rec->order_id); ?>)"><i class="fas fa-print"></i></button>
 <?php elseif ($type === 'payment') : ?>
-<button type="button" class="action-btn btn-view" onclick="viewPayment(<?php echo esc_attr($rec->id); ?>)"><i class="fas fa-eye"></i></button>
+<button type="button" class="action-btn btn-view" data-payment-id="<?php echo esc_attr($rec->id); ?>" data-payment="<?php echo esc_attr(wp_json_encode($pay_data[$rec->id] ?? array())); ?>" onclick="viewPayment(this)"><i class="fas fa-eye"></i></button>
 <button type="button" class="action-btn btn-print" onclick="reprintPay(<?php echo esc_attr($rec->id); ?>)"><i class="fas fa-print"></i></button>
 <?php else : ?>-<?php endif; ?>
 </td>
@@ -346,15 +346,26 @@ if(d.success){body.innerHTML=buildOrderReceiptHtml(d.data)}else{body.innerHTML='
 
 function closeModal(){document.getElementById('order-modal').classList.remove('active')}
 
-function viewPayment(id){
+function viewPayment(el){
     var modal=document.getElementById('payment-modal'),body=document.getElementById('payment-body');
     modal.classList.add('active');
-    var key = String(id);
-    var p=payData[key] || payData[id];
-    if (!payData[key] && payData[id]) {
-        console.warn('Payment lookup fallback used for ID', id);
+    var rawPayload = el && el.dataset ? el.dataset.payment : '';
+    var p = null;
+    if (rawPayload) {
+        try {
+            p = JSON.parse(rawPayload);
+        } catch (error) {
+            console.warn('Payment payload parse failed', error);
+        }
     }
-    if(!p){body.innerHTML='<div style="text-align:center;padding:2rem;color:#991b1b">Payment not found</div>';return}
+    if (!p && el && el.dataset && el.dataset.paymentId) {
+        var key = String(el.dataset.paymentId);
+        p = payData[key] || payData[el.dataset.paymentId];
+    }
+    if (!p) {
+        body.innerHTML='<div style="text-align:center;padding:2rem;color:#991b1b">Payment not found</div>';
+        return;
+    }
     body.innerHTML=buildPaymentReceiptHtml(p);
 }
 
