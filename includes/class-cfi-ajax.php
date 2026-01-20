@@ -770,7 +770,7 @@ class CFI_Ajax {
         if ($result) {
             wp_send_json_success(array('message' => __('Import record added successfully', 'chinemerem-foods')));
         } else {
-            wp_send_json_error(array('message' => __('Failed to add import record', 'chinemerem-foods')));
+            wp_send_json_error(array('message' => __('Sender and driver names are required for all imports.', 'chinemerem-foods')));
         }
     }
     

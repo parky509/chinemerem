@@ -1109,6 +1109,18 @@ function submitOrder() {
         return;
     }
     hideConfirmation();
+    if (!navigator.onLine) {
+        var offlineData = buildOfflineOrderData(method, customerNameInput);
+        if (!offlineData) {
+            return;
+        }
+        if (window.CFI && CFI.offline && typeof CFI.offline.addToQueue === 'function') {
+            CFI.offline.addToQueue('order', offlineData.payload);
+        }
+        showOfflineSubmissionMessage('Order submitted successfully offline. It will sync when you are online.');
+        showOfflineReceipt(offlineData.receipt);
+        return;
+    }
     // Add hidden submit button and trigger form submission
     var form = document.getElementById('order-form');
     var submitBtn = document.createElement('input');
@@ -1117,6 +1129,400 @@ function submitOrder() {
     submitBtn.value = '1';
     form.appendChild(submitBtn);
     form.submit();
+}
+
+function buildOfflineOrderData(method, customerNameInput) {
+    var itemsData = collectOrderItemsForOffline();
+    if (!itemsData || itemsData.items.length === 0) {
+        showFormError('Please add at least one item to the order!');
+        return null;
+    }
+
+    var grandTotal = itemsData.totalAmount - itemsData.totalDiscount;
+    var transferAmount = parseFloat(document.getElementById('transfer_amount').value) || 0;
+    var cashAmount = parseFloat(document.getElementById('cash_amount').value) || 0;
+    if (method === 'transfer') {
+        transferAmount = grandTotal;
+        cashAmount = 0;
+    } else if (method === 'cash') {
+        cashAmount = grandTotal;
+        transferAmount = 0;
+    }
+    var bankInput = document.querySelector('input[name="bank_name"]:checked');
+    var bankName = bankInput ? bankInput.value : 'Moniepoint MFB';
+    var customerName = customerNameInput ? customerNameInput.value.trim() : '';
+    var now = new Date();
+    var orderNumber = buildOfflineOrderNumber(now);
+
+    return {
+        payload: {
+            items: itemsData.items.map(function(item) {
+                return {
+                    product_id: item.product_id,
+                    quantity: item.quantity,
+                    price: item.price,
+                    discount: item.discount,
+                    total: item.total
+                };
+            }),
+            total_quantity: itemsData.totalQty,
+            total_amount: itemsData.totalAmount,
+            discount_amount: itemsData.totalDiscount,
+            grand_total: grandTotal,
+            payment_method: method,
+            transfer_amount: transferAmount,
+            cash_amount: cashAmount,
+            bank_name: bankName,
+            order_type: 'cash',
+            debtor_id: 0,
+            customer_name: customerName
+        },
+        receipt: {
+            order_number: orderNumber,
+            date: formatOfflineDate(now),
+            time: formatOfflineTime(now),
+            customer_name: customerName,
+            items: itemsData.items,
+            total_qty: itemsData.totalQty,
+            subtotal: itemsData.totalAmount,
+            discount: itemsData.totalDiscount,
+            grand_total: grandTotal,
+            payment_method: method,
+            transfer_amount: transferAmount,
+            cash_amount: cashAmount,
+            bank_name: bankName,
+            staff: (window.cfiData && cfiData.currentUser) ? cfiData.currentUser : ''
+        }
+    };
+}
+
+function collectOrderItemsForOffline() {
+    var rows = document.querySelectorAll('.order-row');
+    var items = [];
+    var totalQty = 0;
+    var totalAmount = 0;
+    var totalDiscount = 0;
+
+    rows.forEach(function(row) {
+        var qty = parseFloat(row.querySelector('.qty-input').value) || 0;
+        var discount = parseFloat(row.querySelector('.disc-input').value) || 0;
+        var price = parseFloat(row.dataset.price) || 0;
+        if (qty > 0) {
+            var productInput = row.querySelector('input[type="hidden"]');
+            var productId = productInput ? parseInt(productInput.value, 10) : 0;
+            var total = (price * qty) - discount;
+            items.push({
+                product_id: productId,
+                product_name: row.querySelector('.product-name').textContent.trim(),
+                price: price,
+                quantity: qty,
+                discount: discount,
+                total: Math.max(0, total)
+            });
+            totalQty += qty;
+            totalAmount += (price * qty);
+            totalDiscount += discount;
+        }
+    });
+
+    return {
+        items: items,
+        totalQty: totalQty,
+        totalAmount: totalAmount,
+        totalDiscount: totalDiscount
+    };
+}
+
+function showOfflineSubmissionMessage(message) {
+    if (window.CFI && CFI.toast) {
+        CFI.toast.success(message);
+    } else {
+        alert(message);
+    }
+}
+
+function buildOfflineOrderNumber(date) {
+    var dateStamp = date.getFullYear().toString().slice(-2) +
+        String(date.getMonth() + 1).padStart(2, '0') +
+        String(date.getDate()).padStart(2, '0');
+    var timeStamp = date.getTime().toString().slice(-6);
+    return 'OFF-' + dateStamp + '-' + timeStamp;
+}
+
+function formatOfflineDate(date) {
+    var day = String(date.getDate()).padStart(2, '0');
+    var month = String(date.getMonth() + 1).padStart(2, '0');
+    var year = date.getFullYear();
+    return day + '/' + month + '/' + year;
+}
+
+function formatOfflineTime(date) {
+    var hours = date.getHours();
+    var minutes = String(date.getMinutes()).padStart(2, '0');
+    var ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12;
+    hours = hours ? hours : 12;
+    return hours + ':' + minutes + ' ' + ampm;
+}
+
+function escapeReceiptText(value) {
+    return String(value || '').replace(/[&<>"']/g, function(match) {
+        return {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        }[match];
+    });
+}
+
+function buildOfflineReceiptItems(receipt) {
+    var itemsHtml = '';
+    receipt.items.forEach(function(item) {
+        var name = escapeReceiptText(item.product_name);
+        var discountDisplay = Number(item.discount) > 0 ? '-₦' + formatReceiptNumber(item.discount) : '-';
+        itemsHtml += '<div class="receipt-item">';
+        itemsHtml += '<div class="receipt-row receipt-item-row">';
+        itemsHtml += '<span>' + name + '</span>';
+        itemsHtml += '<span class="item-price receipt-amount">₦' + formatReceiptNumber(item.price) + '</span>';
+        itemsHtml += '<span class="item-qty receipt-amount">' + formatReceiptNumber(item.quantity) + '</span>';
+        itemsHtml += '<span class="item-total receipt-amount">₦' + formatReceiptNumber(item.total) + '</span>';
+        itemsHtml += '</div>';
+        itemsHtml += '<div class="receipt-item-discount"><span>Discount:</span><span class="receipt-amount">' + discountDisplay + '</span></div>';
+        itemsHtml += '</div>';
+    });
+    return itemsHtml;
+}
+
+function buildOfflineReceiptContent(receipt) {
+    var customerLine = receipt.customer_name ? '<p><span>Customer:</span> ' + escapeReceiptText(receipt.customer_name) + '</p>' : '';
+    var transferLine = receipt.transfer_amount > 0 ? '<p><span>Transfer:</span> <span class="receipt-amount">₦' + formatReceiptNumber(receipt.transfer_amount) + '</span></p>' : '';
+    var cashLine = receipt.cash_amount > 0 ? '<p><span>Cash:</span> <span class="receipt-amount">₦' + formatReceiptNumber(receipt.cash_amount) + '</span></p>' : '';
+    var bankLine = receipt.bank_name ? '<p><span>Bank:</span> ' + escapeReceiptText(receipt.bank_name) + '</p>' : '';
+    var paymentMethod = receipt.payment_method ? receipt.payment_method.charAt(0).toUpperCase() + receipt.payment_method.slice(1) : '';
+    var itemsHtml = buildOfflineReceiptItems(receipt);
+    var staffName = escapeReceiptText(receipt.staff);
+    var offlineNote = '<p style="color:#dc2626;font-weight:600;text-align:center;margin-top:0.25rem;">Order submitted offline - will sync when online.</p>';
+
+    return '' +
+        '<div class="receipt-body" id="offline-receipt-print-area">' +
+            '<div class="receipt-company">' +
+                '<h2>Chinemerem Foods</h2>' +
+                '<p>Inventory Management System</p>' +
+            '</div>' +
+            '<div class="receipt-divider"></div>' +
+            '<div class="receipt-info">' +
+                '<p><span>Order #:</span> <strong>' + escapeReceiptText(receipt.order_number) + '</strong></p>' +
+                '<p><span>Date:</span> ' + escapeReceiptText(receipt.date) + '</p>' +
+                '<p><span>Time:</span> ' + escapeReceiptText(receipt.time) + '</p>' +
+                customerLine +
+                '<p><span>Staff:</span> ' + staffName + '</p>' +
+            '</div>' +
+            offlineNote +
+            '<div class="receipt-divider"></div>' +
+            '<div class="receipt-items">' +
+                '<div class="receipt-row receipt-item-header">' +
+                    '<span>Item</span>' +
+                    '<span class="item-price">Price</span>' +
+                    '<span class="item-qty">Qty</span>' +
+                    '<span class="item-total">Total</span>' +
+                '</div>' +
+                itemsHtml +
+            '</div>' +
+            '<div class="receipt-divider"></div>' +
+            '<div class="receipt-totals">' +
+                '<p><span>Subtotal:</span> <span class="receipt-amount">₦' + formatReceiptNumber(receipt.subtotal) + '</span></p>' +
+                '<p><span>Total Discount:</span> <span class="receipt-amount">-₦' + formatReceiptNumber(receipt.discount) + '</span></p>' +
+                '<p class="grand"><span>Grand Total:</span> <span class="receipt-amount">₦' + formatReceiptNumber(receipt.grand_total) + '</span></p>' +
+                '<p><span>Payment:</span> <span>' + escapeReceiptText(paymentMethod) + '</span></p>' +
+                transferLine +
+                cashLine +
+                bankLine +
+            '</div>' +
+            '<div class="receipt-divider"></div>' +
+            '<div class="receipt-footer">' +
+                '<p>Thank you for your patronage!</p>' +
+                '<p>Powered by BendlessTech</p>' +
+            '</div>' +
+        '</div>';
+}
+
+function showOfflineReceipt(receipt) {
+    var existing = document.getElementById('offline-receipt-modal');
+    if (existing) {
+        existing.remove();
+    }
+    var modal = document.createElement('div');
+    modal.className = 'receipt-modal';
+    modal.id = 'offline-receipt-modal';
+    modal.innerHTML = '' +
+        '<div class="receipt-content">' +
+            '<div class="receipt-header">' +
+                '<h3><i class="fas fa-receipt"></i> Receipt</h3>' +
+                '<button type="button" onclick="closeOfflineReceipt()" style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;">&times;</button>' +
+            '</div>' +
+            buildOfflineReceiptContent(receipt) +
+            '<div class="receipt-actions">' +
+                '<button type="button" onclick="printOfflineReceipt()" class="btn btn-print">' +
+                    '<i class="fas fa-print"></i> Print' +
+                '</button>' +
+                '<button type="button" onclick="closeOfflineReceipt()" class="btn btn-primary">' +
+                    '<i class="fas fa-plus"></i> New Order' +
+                '</button>' +
+            '</div>' +
+        '</div>';
+    modal.dataset.receipt = JSON.stringify(receipt);
+    document.body.appendChild(modal);
+}
+
+function closeOfflineReceipt() {
+    var modal = document.getElementById('offline-receipt-modal');
+    if (modal) {
+        modal.remove();
+    }
+    window.location.href = window.location.pathname;
+}
+
+function getOfflineReceiptData() {
+    var modal = document.getElementById('offline-receipt-modal');
+    if (!modal || !modal.dataset.receipt) {
+        return null;
+    }
+    try {
+        return JSON.parse(modal.dataset.receipt);
+    } catch (e) {
+        return null;
+    }
+}
+
+function generateOfflineESCPOSReceipt(receipt) {
+    var text = '';
+    var ESC = '\x1b';
+    var GS = '\x1d';
+    var boldOn = ESC + 'E' + '\x01';
+    var boldOff = ESC + 'E' + '\x00';
+    var doubleOn = GS + '!' + '\x11';
+    var doubleOff = GS + '!' + '\x00';
+    var lineWidth = 48;
+    var doubleWidth = Math.floor(lineWidth / 2);
+    var itemWidth = 20;
+    var priceWidth = 8;
+    var qtyWidth = 5;
+    var totalWidth = 12;
+    var line = '-'.repeat(lineWidth);
+
+    function centerText(textValue, width) {
+        var useWidth = width || lineWidth;
+        var padding = Math.floor((useWidth - textValue.length) / 2);
+        return ' '.repeat(Math.max(0, padding)) + textValue;
+    }
+
+    function leftRight(left, right) {
+        var space = lineWidth - left.length - right.length;
+        return left + ' '.repeat(Math.max(1, space)) + right;
+    }
+
+    function leftRightBold(left, right) {
+        var space = lineWidth - left.length - right.length;
+        return left + ' '.repeat(Math.max(1, space)) + boldOn + right + boldOff;
+    }
+
+    text += doubleOn + boldOn + centerText('CHINEMEREM FOODS', doubleWidth) + boldOff + doubleOff + '\n';
+    text += centerText('Sales Receipt') + '\n';
+    text += centerText('OFFLINE ORDER') + '\n';
+    text += line + '\n';
+    text += 'Order: ' + receipt.order_number + '\n';
+    text += 'Date: ' + receipt.date + '\n';
+    text += 'Time: ' + receipt.time + '\n';
+    if (receipt.customer_name) {
+        text += 'Customer: ' + receipt.customer_name + '\n';
+    }
+    if (receipt.staff) {
+        text += 'Staff: ' + receipt.staff + '\n';
+    }
+    text += line + '\n';
+    text += 'ITEM'.padEnd(itemWidth) + ' ' + 'PRICE'.padStart(priceWidth) + ' ' + 'QTY'.padStart(qtyWidth) + ' ' + 'TOTAL'.padStart(totalWidth) + '\n';
+    text += line + '\n';
+    receipt.items.forEach(function(item) {
+        var itemName = String(item.product_name || '').substring(0, itemWidth);
+        text += itemName.padEnd(itemWidth) +
+            ' ' + boldOn + String(formatReceiptNumber(item.price)).padStart(priceWidth) + boldOff +
+            ' ' + boldOn + String(formatReceiptNumber(item.quantity)).padStart(qtyWidth) + boldOff +
+            ' ' + boldOn + String(formatReceiptNumber(item.total)).padStart(totalWidth) + boldOff + '\n';
+        text += leftRightBold('Discount:', item.discount > 0 ? '-N' + formatReceiptNumber(item.discount) : '-') + '\n\n';
+    });
+    text += line + '\n';
+    text += leftRightBold('Subtotal:', 'N' + formatReceiptNumber(receipt.subtotal)) + '\n';
+    text += leftRightBold('Total Discount:', '-N' + formatReceiptNumber(receipt.discount)) + '\n';
+    text += line + '\n';
+    text += leftRightBold('GRAND TOTAL:', 'N' + formatReceiptNumber(receipt.grand_total)) + '\n';
+    text += leftRight('Payment:', receipt.payment_method) + '\n';
+    if (receipt.transfer_amount > 0) {
+        text += leftRightBold('Transfer:', 'N' + formatReceiptNumber(receipt.transfer_amount)) + '\n';
+    }
+    if (receipt.cash_amount > 0) {
+        text += leftRightBold('Cash:', 'N' + formatReceiptNumber(receipt.cash_amount)) + '\n';
+    }
+    if (receipt.bank_name) {
+        text += leftRight('Bank:', receipt.bank_name) + '\n';
+    }
+    text += line + '\n';
+    text += centerText('Offline order submitted') + '\n';
+    text += centerText('Will sync when online') + '\n';
+    text += centerText('Thank you for your patronage!') + '\n';
+    text += centerText('Powered by BendlessTech') + '\n';
+    text += '\n\n\n';
+    return text;
+}
+
+async function printOfflineReceipt() {
+    var receipt = getOfflineReceiptData();
+    if (!receipt) {
+        alert('No receipt data found');
+        return;
+    }
+    if ('bluetooth' in navigator) {
+        var receiptText = generateOfflineESCPOSReceipt(receipt);
+        var printed = await printToBluetoothPrinter(receiptText);
+        if (printed) {
+            alert('Receipt printed successfully!');
+            return;
+        }
+    }
+    var printWindow = window.open('', '_blank', 'width=400,height=700');
+    if (!printWindow) {
+        alert('Please allow popups to print receipts');
+        return;
+    }
+    printWindow.document.write('<!DOCTYPE html><html><head><title>Print Receipt</title>');
+    printWindow.document.write('<style>');
+    printWindow.document.write('*{margin:0;padding:0;box-sizing:border-box}');
+    printWindow.document.write('html,body{width:80mm!important;max-width:80mm!important;margin:0!important;padding:0!important}');
+    printWindow.document.write('body{font-family:"Courier New",Courier,monospace;font-size:12px;line-height:1.4;color:#000;background:#fff}');
+    printWindow.document.write('.receipt-body{width:80mm;padding:2mm;box-sizing:border-box}');
+    printWindow.document.write('.receipt-company{text-align:center;margin-bottom:6px}');
+    printWindow.document.write('.receipt-company h2{font-size:16px;font-weight:800;margin:0 0 4px;letter-spacing:0.5px;text-transform:uppercase}');
+    printWindow.document.write('.receipt-divider{border-top:1px solid #000;margin:6px 0}');
+    printWindow.document.write('.receipt-info p{display:flex;justify-content:space-between;margin:4px 0;font-size:12px}');
+    printWindow.document.write('.receipt-row{display:grid;grid-template-columns:1.6fr 0.8fr 0.5fr 0.9fr;gap:6px;align-items:baseline;font-size:11px}');
+    printWindow.document.write('.receipt-row .item-price,.receipt-row .item-qty,.receipt-row .item-total{text-align:right}');
+    printWindow.document.write('.receipt-item-header{font-size:10px;font-weight:700;text-transform:uppercase}');
+    printWindow.document.write('.receipt-item{padding:4px 0;border-bottom:1px dashed #999}');
+    printWindow.document.write('.receipt-item:last-child{border-bottom:none}');
+    printWindow.document.write('.receipt-item-discount{display:flex;justify-content:space-between;font-size:10px;margin-top:2px}');
+    printWindow.document.write('.receipt-amount{font-weight:800}');
+    printWindow.document.write('.receipt-totals p{display:flex;justify-content:space-between;margin:4px 0;font-size:12px}');
+    printWindow.document.write('.receipt-totals .grand{font-size:13px;font-weight:700}');
+    printWindow.document.write('.receipt-footer{text-align:center;margin-top:6px;font-size:10px}');
+    printWindow.document.write('@media print{body{margin:0;padding:0}}');
+    printWindow.document.write('</style></head><body>');
+    printWindow.document.write(buildOfflineReceiptContent(receipt));
+    printWindow.document.write('</body></html>');
+    printWindow.document.close();
+    printWindow.onload = function() {
+        setTimeout(function() { printWindow.print(); }, 300);
+    };
 }
 
 function showCustomerNameError(message) {

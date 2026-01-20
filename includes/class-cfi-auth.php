@@ -37,7 +37,7 @@ class CFI_Auth {
      * Custom logout redirect - always go to /sign-in/
      */
     public function custom_logout_redirect($redirect_to, $requested_redirect_to, $user) {
-        return home_url('/sign-in/?logout=1');
+        return $this->get_login_redirect_url();
     }
     
     /**
@@ -93,8 +93,17 @@ class CFI_Auth {
      */
     public function handle_logout() {
         wp_logout();
-        wp_safe_redirect(home_url('/sign-in/?logout=1'));
+        wp_safe_redirect($this->get_login_redirect_url());
         exit;
+    }
+
+    /**
+     * Build login redirect URL with logout indicator.
+     */
+    private function get_login_redirect_url() {
+        $login_page = get_page_by_path('cfi-login');
+        $login_url = $login_page ? get_permalink($login_page->ID) : home_url('/sign-in/');
+        return add_query_arg('logout', '1', $login_url);
     }
     
     /**

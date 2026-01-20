@@ -33,6 +33,10 @@ class CFI_Imports {
                 continue;
             }
             
+            if ($sender === '' || $driver_name === '') {
+                return false;
+            }
+            
             $wpdb->insert(
                 $table,
                 array(
