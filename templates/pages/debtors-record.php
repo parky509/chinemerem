@@ -936,7 +936,7 @@ function sendOrderReceipt(){
         alert('No phone number found for this debtor.');
         return;
     }
-    sendReceiptWithFallback('order-print-area', receiptText);
+    sendReceiptWithFallback('order-print-area', receiptText, true);
 }
 
 function buildOrderReceiptText(){
@@ -963,7 +963,7 @@ function sendPayReceipt(){
         alert('No phone number found for this debtor.');
         return;
     }
-    sendReceiptWithFallback('pay-print-area', receiptText);
+    sendReceiptWithFallback('pay-print-area', receiptText, false);
 }
 
 function openWhatsappWithReceipt(dataUrl, receiptText){
@@ -975,7 +975,7 @@ function openWhatsappWithReceipt(dataUrl, receiptText){
     window.open(url, '_blank');
 }
 
-function sendReceiptWithFallback(elementId, receiptText){
+function sendReceiptWithFallback(elementId, receiptText, autoRedirect){
     var receiptNode = document.getElementById(elementId);
     if (!receiptNode) {
         alert('Receipt image not available.');
@@ -985,7 +985,7 @@ function sendReceiptWithFallback(elementId, receiptText){
     var normalizedPhone = phone.replace(/[^0-9]/g, '');
     var baseUrl = normalizedPhone ? 'https://wa.me/' + normalizedPhone : 'https://wa.me/';
     var placeholderText = receiptText + '\\n\\nPreparing receipt image...';
-    var shareWindow = window.open(baseUrl + '?text=' + encodeURIComponent(placeholderText), '_blank');
+    var shareWindow = autoRedirect ? window.open(baseUrl + '?text=' + encodeURIComponent(placeholderText), '_blank') : null;
     html2canvas(receiptNode, { backgroundColor: '#ffffff', scale: 2 }).then(function(canvas) {
         canvas.toBlob(function(blob) {
             if (!blob) {
