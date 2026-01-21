@@ -936,7 +936,7 @@ function sendOrderReceipt(){
         alert('No phone number found for this debtor.');
         return;
     }
-    shareReceiptImage('order-print-area', receiptText);
+    sendReceiptWithFallback('order-print-area', receiptText);
 }
 
 function buildOrderReceiptText(){
@@ -963,7 +963,7 @@ function sendPayReceipt(){
         alert('No phone number found for this debtor.');
         return;
     }
-    shareReceiptImage('pay-print-area', receiptText);
+    sendReceiptWithFallback('pay-print-area', receiptText);
 }
 
 function openWhatsappWithReceipt(dataUrl, receiptText){
@@ -975,7 +975,7 @@ function openWhatsappWithReceipt(dataUrl, receiptText){
     window.open(url, '_blank');
 }
 
-function shareReceiptImage(elementId, receiptText){
+function sendReceiptWithFallback(elementId, receiptText){
     var receiptNode = document.getElementById(elementId);
     if (!receiptNode) {
         alert('Receipt image not available.');
