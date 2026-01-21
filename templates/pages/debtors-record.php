@@ -976,6 +976,10 @@ function shareReceiptImage(elementId, receiptText){
         alert('Receipt image not available.');
         return;
     }
+    if (!navigator.share) {
+        alert('Sharing is not supported in this browser.');
+        return;
+    }
     html2canvas(receiptNode, { backgroundColor: '#ffffff', scale: 2 }).then(function(canvas) {
         canvas.toBlob(function(blob) {
             if (!blob) {
