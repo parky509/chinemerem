@@ -672,6 +672,9 @@ class CFI_Ajax {
      */
     public function handle_debtor_payment() {
         $this->verify_request();
+        if (!function_exists('cfi_format_receipt_time')) {
+            require_once plugin_dir_path(__FILE__) . 'class-cfi-orders.php';
+        }
         
         $debtor_id = isset($_POST['debtor_id']) ? intval($_POST['debtor_id']) : 0;
         $amount = isset($_POST['amount']) ? floatval($_POST['amount']) : 0;
