@@ -355,24 +355,13 @@ function viewPayment(id){
     var modal=document.getElementById('payment-modal'),body=document.getElementById('payment-body');
     closeModal();
     modal.classList.add('active');
-    body.innerHTML='<div style="text-align:center;padding:2rem"><i class="fas fa-spinner fa-spin" style="font-size:2rem;color:#001943"></i><p>Loading...</p></div>';
-    fetch('<?php echo admin_url('admin-ajax.php'); ?>', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'},
-        body: new URLSearchParams({
-            action: 'get_debtor_payment_details',
-            payment_id: id,
-            nonce: cfiAjaxNonce
-        })
-    }).then(function(r){return r.json()}).then(function(d){
-        if(d.success){
-            body.innerHTML=buildPaymentReceiptHtml(d.data);
-        }else{
-            body.innerHTML='<div style="text-align:center;padding:2rem;color:#991b1b">'+escapeHtml(d.message||'Payment not found')+'</div>';
-        }
-    }).catch(function(){
-        body.innerHTML='<div style="text-align:center;padding:2rem;color:#991b1b">Error loading payment details</div>';
-    });
+    var key = String(id);
+    var paymentData = payData[key] || payData[id];
+    if (!paymentData) {
+        body.innerHTML='<div style="text-align:center;padding:2rem;color:#991b1b">Payment not found</div>';
+        return;
+    }
+    body.innerHTML=buildPaymentReceiptHtml(paymentData);
 }
 
 function closePaymentModal(){document.getElementById('payment-modal').classList.remove('active')}
