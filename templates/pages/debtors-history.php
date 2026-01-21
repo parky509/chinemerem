@@ -200,6 +200,7 @@ $icon = $type === 'order' ? 'cart-plus' : ($type === 'payment' ? 'money-check' :
 <button type="button" class="action-btn btn-view" onclick="viewOrder(<?php echo esc_attr($rec->order_id); ?>)"><i class="fas fa-eye"></i></button>
 <button type="button" class="action-btn btn-print" onclick="reprintOrder(<?php echo esc_attr($rec->order_id); ?>)"><i class="fas fa-print"></i></button>
 <?php elseif ($type === 'payment') : ?>
+<button type="button" class="action-btn btn-view" onclick="viewPayment(<?php echo esc_attr($rec->id); ?>)"><i class="fas fa-eye"></i></button>
 <button type="button" class="action-btn btn-print" onclick="reprintPay(<?php echo esc_attr($rec->id); ?>)"><i class="fas fa-print"></i></button>
 <?php else : ?>-<?php endif; ?>
 </td>
@@ -222,6 +223,12 @@ $icon = $type === 'order' ? 'cart-plus' : ($type === 'payment' ? 'money-check' :
 <div class="modal-body" id="order-body"><div style="text-align:center;padding:2rem"><i class="fas fa-spinner fa-spin" style="font-size:2rem;color:#001943"></i><p>Loading...</p></div></div>
 </div>
 
+<div class="modal" id="payment-modal">
+<div class="modal-content">
+<div class="modal-header"><h3><i class="fas fa-receipt"></i> Payment Details</h3><button type="button" class="modal-close" onclick="closePaymentModal()">&times;</button></div>
+<div class="modal-body" id="payment-body"><div style="text-align:center;padding:2rem"><i class="fas fa-spinner fa-spin" style="font-size:2rem;color:#001943"></i><p>Loading...</p></div></div>
+</div>
+</div>
 </div>
 
 <?php
@@ -333,6 +340,7 @@ function buildPaymentReceiptHtml(p){
 
 function viewOrder(id){
 var modal=document.getElementById('order-modal'),body=document.getElementById('order-body');
+closePaymentModal();
 modal.classList.add('active');
 fetch('<?php echo admin_url('admin-ajax.php'); ?>?action=cfi_get_order_details&order_id='+id)
 .then(function(r){return r.json()})
@@ -343,10 +351,37 @@ if(d.success){body.innerHTML=buildOrderReceiptHtml(d.data)}else{body.innerHTML='
 
 function closeModal(){document.getElementById('order-modal').classList.remove('active')}
 
+function viewPayment(id){
+    var modal=document.getElementById('payment-modal'),body=document.getElementById('payment-body');
+    closeModal();
+    modal.classList.add('active');
+    body.innerHTML='<div style="text-align:center;padding:2rem"><i class="fas fa-spinner fa-spin" style="font-size:2rem;color:#001943"></i><p>Loading...</p></div>';
+    fetch('<?php echo admin_url('admin-ajax.php'); ?>', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'},
+        body: new URLSearchParams({
+            action: 'get_debtor_payment_details',
+            payment_id: id,
+            nonce: cfiAjaxNonce
+        })
+    }).then(function(r){return r.json()}).then(function(d){
+        if(d.success){
+            body.innerHTML=buildPaymentReceiptHtml(d.data);
+        }else{
+            body.innerHTML='<div style="text-align:center;padding:2rem;color:#991b1b">'+escapeHtml(d.message||'Payment not found')+'</div>';
+        }
+    }).catch(function(){
+        body.innerHTML='<div style="text-align:center;padding:2rem;color:#991b1b">Error loading payment details</div>';
+    });
+}
+
+function closePaymentModal(){document.getElementById('payment-modal').classList.remove('active')}
+
 // Close modal on outside click or Escape
+document.getElementById('payment-modal').addEventListener('click',function(e){if(e.target===this)closePaymentModal()});
 if(!document.body.dataset.cfiDebtorHistoryEscapeHandler){
     document.body.dataset.cfiDebtorHistoryEscapeHandler='true';
-    document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeModal()}});
+    document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeModal();closePaymentModal()}});
 }
 
 // Bluetooth thermal printer support
