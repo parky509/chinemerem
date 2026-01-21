@@ -670,7 +670,7 @@ foreach ($order_receipt['items'] as $item) {
 </div>
 </div>
 <div class="modal-footer">
-<button type="button" onclick="sendOrderReceipt()" class="btn" style="background:#001943;color:#fff"><i class="fab fa-whatsapp"></i> Send Receipt</button>
+<button type="button" onclick="sendOrderReceipt()" class="btn" style="background:#001943;color:#fff"><i class="fab fa-whatsapp"></i> Send to WhatsApp</button>
 <button onclick="printOrderReceipt()" class="btn" style="background:#7c3aed;color:#fff"><i class="fas fa-print"></i> Print</button>
 <button onclick="closeOrderModal()" class="btn btn-success"><i class="fas fa-check"></i> Done</button>
 </div>
@@ -835,7 +835,7 @@ function closeOrderModal(){document.getElementById('order-modal').style.display=
 </div>
 </div>
 <div class="modal-footer">
-<button type="button" onclick="sendPayReceipt()" class="btn" style="background:#001943;color:#fff"><i class="fab fa-whatsapp"></i> Send Receipt</button>
+<button type="button" onclick="sendPayReceipt()" class="btn" style="background:#001943;color:#fff"><i class="fab fa-whatsapp"></i> Send to WhatsApp</button>
 <button onclick="printPayReceipt()" class="btn" style="background:#7c3aed;color:#fff"><i class="fas fa-print"></i> Print</button>
 <button onclick="closePayModal()" class="btn btn-success"><i class="fas fa-check"></i> Done</button>
 </div>
@@ -981,10 +981,11 @@ function sendReceiptWithFallback(elementId, receiptText){
         alert('Receipt image not available.');
         return;
     }
-    var shareWindow = window.open('about:blank', '_blank');
-    if (shareWindow) {
-        shareWindow.document.write('<p style="font-family:Arial,sans-serif;padding:1rem;">Preparing receipt...</p>');
-    }
+    var phone = '<?php echo esc_js($debtor->phone ?? ''); ?>';
+    var normalizedPhone = phone.replace(/[^0-9]/g, '');
+    var baseUrl = normalizedPhone ? 'https://wa.me/' + normalizedPhone : 'https://wa.me/';
+    var placeholderText = receiptText + '\\n\\nPreparing receipt image...';
+    var shareWindow = window.open(baseUrl + '?text=' + encodeURIComponent(placeholderText), '_blank');
     html2canvas(receiptNode, { backgroundColor: '#ffffff', scale: 2 }).then(function(canvas) {
         canvas.toBlob(function(blob) {
             if (!blob) {
@@ -1010,9 +1011,6 @@ function sendReceiptWithFallback(elementId, receiptText){
             }
             var reader = new FileReader();
             reader.onloadend = function() {
-                var phone = '<?php echo esc_js($debtor->phone ?? ''); ?>';
-                var normalizedPhone = phone.replace(/[^0-9]/g, '');
-                var baseUrl = normalizedPhone ? 'https://wa.me/' + normalizedPhone : 'https://wa.me/';
                 var message = receiptText + '\\n\\nReceipt image (tap to download): ' + reader.result;
                 var url = baseUrl + '?text=' + encodeURIComponent(message);
                 if (shareWindow) {
