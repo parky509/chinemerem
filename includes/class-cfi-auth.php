@@ -56,9 +56,11 @@ class CFI_Auth {
         $password = isset($_POST['password']) ? $_POST['password'] : '';
         $remember = isset($_POST['remember']) && $_POST['remember'] === '1';
         
+        $redirect_to = isset($_REQUEST['redirect_to']) ? esc_url_raw(wp_unslash($_REQUEST['redirect_to'])) : home_url('/home/');
+        
         // Validate
         if (empty($username) || empty($password)) {
-            wp_safe_redirect(home_url('/sign-in/?error=empty'));
+            wp_safe_redirect(add_query_arg('error', 'empty', home_url('/sign-in/')));
             exit;
         }
         
@@ -72,19 +74,22 @@ class CFI_Auth {
         $user = wp_signon($creds, is_ssl());
         
         if (is_wp_error($user)) {
-            wp_safe_redirect(home_url('/sign-in/?error=invalid'));
+            wp_safe_redirect(add_query_arg('error', 'invalid', home_url('/sign-in/')));
             exit;
         }
         
         // Check access
         if (!$this->user_has_cfi_access($user)) {
             wp_logout();
-            wp_safe_redirect(home_url('/sign-in/?error=access'));
+            wp_safe_redirect(add_query_arg('error', 'access', home_url('/sign-in/')));
             exit;
         }
         
-        // Success - redirect to home
-        wp_safe_redirect(home_url('/home/'));
+        // Success - redirect to requested page
+        if (empty($redirect_to)) {
+            $redirect_to = home_url('/home/');
+        }
+        wp_safe_redirect($redirect_to);
         exit;
     }
     

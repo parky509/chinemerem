@@ -272,6 +272,7 @@ $error_messages = array(
         
         <form action="<?php echo esc_url(admin_url('admin-post.php')); ?>" method="POST">
             <input type="hidden" name="action" value="cfi_do_login">
+            <input type="hidden" name="redirect_to" value="<?php echo isset($_GET['redirect_to']) ? esc_url($_GET['redirect_to']) : esc_url(home_url('/home/')); ?>">
             
             <div class="form-group">
                 <label for="username">Username</label>

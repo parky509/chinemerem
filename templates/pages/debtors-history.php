@@ -180,7 +180,7 @@ table td:before{content:attr(data-label);font-weight:600;color:#001943}
 <?php else : ?>
 <div style="overflow-x:auto">
 <table>
-<thead><tr><th>Date</th><th>Time</th><th>Debtor</th><th>Type</th><th>Amount</th><th>Before</th><th>After</th><th>Details</th><th>Staff</th><?php if ($is_super_admin) : ?><th>Action</th><?php endif; ?></tr></thead>
+<thead><tr><th>Date</th><th>Time</th><th>Debtor</th><th>Type</th><th>Amount</th><th>Before</th><th>After</th><th>Order Details</th><th>Payment Details</th><th>Staff</th><?php if ($is_super_admin) : ?><th>Action</th><?php endif; ?></tr></thead>
 <tbody>
 <?php foreach ($history as $rec) : 
 $type = $rec->transaction_type;
@@ -195,11 +195,14 @@ $icon = $type === 'order' ? 'cart-plus' : ($type === 'payment' ? 'money-check' :
 <td data-label="Amount" style="font-weight:600;color:<?php echo $type === 'order' ? '#dc2626' : '#16a34a'; ?>"><?php echo $type === 'order' ? '+' : '-'; ?>₦<?php echo number_format((float)$rec->amount, 2); ?></td>
 <td data-label="Before">₦<?php echo number_format((float)$rec->balance_before, 2); ?></td>
 <td data-label="After" style="font-weight:600">₦<?php echo number_format((float)$rec->balance_after, 2); ?></td>
-<td data-label="Details">
+<td data-label="Order Details">
 <?php if ($type === 'order' && $rec->order_id) : ?>
 <button type="button" class="action-btn btn-view" onclick="viewOrder(<?php echo esc_attr($rec->order_id); ?>)"><i class="fas fa-eye"></i></button>
 <button type="button" class="action-btn btn-print" onclick="reprintOrder(<?php echo esc_attr($rec->order_id); ?>)"><i class="fas fa-print"></i></button>
-<?php elseif ($type === 'payment') : ?>
+<?php else : ?>-<?php endif; ?>
+</td>
+<td data-label="Payment Details">
+<?php if ($type === 'payment') : ?>
 <button type="button" class="action-btn btn-view" onclick="viewPayment(<?php echo esc_attr($rec->id); ?>)"><i class="fas fa-eye"></i></button>
 <button type="button" class="action-btn btn-print" onclick="reprintPay(<?php echo esc_attr($rec->id); ?>)"><i class="fas fa-print"></i></button>
 <?php else : ?>-<?php endif; ?>
@@ -223,12 +226,6 @@ $icon = $type === 'order' ? 'cart-plus' : ($type === 'payment' ? 'money-check' :
 <div class="modal-body" id="order-body"><div style="text-align:center;padding:2rem"><i class="fas fa-spinner fa-spin" style="font-size:2rem;color:#001943"></i><p>Loading...</p></div></div>
 </div>
 
-<div class="modal" id="payment-modal">
-<div class="modal-content">
-<div class="modal-header"><h3><i class="fas fa-receipt"></i> Payment Details</h3><button type="button" class="modal-close" onclick="closePaymentModal()">&times;</button></div>
-<div class="modal-body" id="payment-body"><div style="text-align:center;padding:2rem"><i class="fas fa-spinner fa-spin" style="font-size:2rem;color:#001943"></i><p>Loading...</p></div></div>
-</div>
-</div>
 </div>
 
 <?php
@@ -340,7 +337,6 @@ function buildPaymentReceiptHtml(p){
 
 function viewOrder(id){
 var modal=document.getElementById('order-modal'),body=document.getElementById('order-body');
-closePaymentModal();
 modal.classList.add('active');
 fetch('<?php echo admin_url('admin-ajax.php'); ?>?action=cfi_get_order_details&order_id='+id)
 .then(function(r){return r.json()})
@@ -352,25 +348,22 @@ if(d.success){body.innerHTML=buildOrderReceiptHtml(d.data)}else{body.innerHTML='
 function closeModal(){document.getElementById('order-modal').classList.remove('active')}
 
 function viewPayment(id){
-    var modal=document.getElementById('payment-modal'),body=document.getElementById('payment-body');
-    closeModal();
-    modal.classList.add('active');
+    var modal=document.getElementById('order-modal'),body=document.getElementById('order-body');
     var key = String(id);
     var paymentData = payData[key] || payData[id];
     if (!paymentData) {
+        modal.classList.add('active');
         body.innerHTML='<div style="text-align:center;padding:2rem;color:#991b1b">Payment not found</div>';
         return;
     }
+    modal.classList.add('active');
     body.innerHTML=buildPaymentReceiptHtml(paymentData);
 }
 
-function closePaymentModal(){document.getElementById('payment-modal').classList.remove('active')}
-
 // Close modal on outside click or Escape
-document.getElementById('payment-modal').addEventListener('click',function(e){if(e.target===this)closePaymentModal()});
 if(!document.body.dataset.cfiDebtorHistoryEscapeHandler){
     document.body.dataset.cfiDebtorHistoryEscapeHandler='true';
-    document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeModal();closePaymentModal()}});
+    document.addEventListener('keydown',function(e){if(e.key==='Escape'){closeModal()}});
 }
 
 // Bluetooth thermal printer support

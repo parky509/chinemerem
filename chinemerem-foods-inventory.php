@@ -427,6 +427,8 @@ final class Chinemerem_Foods_Inventory {
         // Force redirect ALL non-logged users to login page
         if (!is_user_logged_in()) {
             $login_page_url = home_url($login_url);
+            $redirect_to = home_url(add_query_arg(array(), $current_url));
+            $login_page_url = add_query_arg('redirect_to', rawurlencode($redirect_to), $login_page_url);
             wp_redirect($login_page_url);
             exit;
         }
