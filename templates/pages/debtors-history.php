@@ -340,6 +340,7 @@ function buildPaymentReceiptHtml(p){
 
 function viewOrder(id){
 var modal=document.getElementById('order-modal'),body=document.getElementById('order-body');
+closePaymentModal();
 modal.classList.add('active');
 fetch('<?php echo admin_url('admin-ajax.php'); ?>?action=cfi_get_order_details&order_id='+id)
 .then(function(r){return r.json()})
@@ -352,6 +353,7 @@ function closeModal(){document.getElementById('order-modal').classList.remove('a
 
 function viewPayment(id){
     var modal=document.getElementById('payment-modal'),body=document.getElementById('payment-body');
+    closeModal();
     modal.classList.add('active');
     body.innerHTML='<div style="text-align:center;padding:2rem"><i class="fas fa-spinner fa-spin" style="font-size:2rem;color:#001943"></i><p>Loading...</p></div>';
     fetch('<?php echo admin_url('admin-ajax.php'); ?>', {
@@ -360,7 +362,7 @@ function viewPayment(id){
         body: new URLSearchParams({
             action: 'get_debtor_payment_details',
             payment_id: id,
-            _ajax_nonce: cfiAjaxNonce
+            nonce: cfiAjaxNonce
         })
     }).then(function(r){return r.json()}).then(function(d){
         if(d.success){
