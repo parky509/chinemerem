@@ -881,42 +881,47 @@ var h='<!DOCTYPE html><html><head><title>Print Receipt</title>';
 h+='<style>';
 h+='@page{size:80mm auto;margin:0}';
 h+='*{margin:0;padding:0;box-sizing:border-box}';
-h+='body{font-family:"Courier New",Courier,monospace;font-size:13px;width:72mm;max-width:72mm;margin:0 auto;padding:5mm;line-height:1.4;color:#000}';
-h+='.header{text-align:center;padding:8px 0;border-bottom:2px dashed #000;margin-bottom:10px}';
-h+='.header h2{font-size:16px;font-weight:bold;margin:0 0 5px}';
-h+='.header p{font-size:11px;margin:0}';
-h+='.info{margin:10px 0;padding:8px 0;border-bottom:1px dashed #000}';
+h+='html,body{width:100%!important;max-width:100%!important;margin:0!important;padding:0!important}';
+h+='body{font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.3;color:#000;background:#fff}';
+h+='.receipt{width:100%;padding:3mm}';
+h+='.header{text-align:center;padding:10px 0;border-bottom:3px double #000;margin-bottom:12px}';
+h+='.header h2{font-size:20px;font-weight:900;margin:0 0 5px;text-transform:uppercase}';
+h+='.header p{font-size:14px;margin:0;font-weight:700;color:#0f172a}';
+h+='.info{margin:10px 0;padding:10px 0;border-bottom:2px solid #000}';
 h+='.info p{display:flex;justify-content:space-between;margin:6px 0;font-size:12px}';
-h+='.payment{margin:10px 0;padding:10px 0;border-bottom:1px dashed #000}';
+h+='.payment{margin:10px 0;padding:10px 0;border-bottom:2px solid #000}';
 h+='.payment p{display:flex;justify-content:space-between;margin:6px 0;font-size:12px}';
-h+='.payment .big{font-size:14px;font-weight:bold;color:#008800}';
-h+='.total{margin:10px 0;padding:10px 0;border-top:2px solid #000}';
-h+='.total p{display:flex;justify-content:space-between;margin:6px 0;font-size:14px;font-weight:bold}';
-h+='.footer{text-align:center;margin-top:15px;padding-top:10px;border-top:1px dashed #000;font-size:10px}';
+h+='.payment .big{font-size:14px;font-weight:900;color:#008800}';
+h+='.receipt-amount{font-weight:900}';
+h+='.total{margin:12px 0;padding:10px 0;border-top:3px solid #000}';
+h+='.total p{display:flex;justify-content:space-between;margin:6px 0;font-size:14px;font-weight:900}';
+h+='.footer{text-align:center;margin-top:12px;padding-top:10px;border-top:2px dashed #000;font-size:11px}';
+h+='.footer p{margin:4px 0}';
 h+='.no-print{margin:15px 0;text-align:center}';
 h+='.print-btn{background:#16a34a;color:#fff;border:none;padding:12px 30px;font-size:14px;border-radius:5px;cursor:pointer}';
-h+='@media print{.no-print{display:none !important}}';
+h+='@media print{.no-print{display:none !important}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}';
 h+='</style></head><body>';
+h+='<div class="receipt">';
 h+='<div class="header"><h2>CHINEMEREM FOODS</h2><p>Debt Payment Receipt</p></div>';
 h+='<div class="info">';
-h+='<p><span>Receipt #:</span><span><?php echo esc_js($payment_receipt['receipt_number']); ?></span></p>';
-h+='<p><span>Date:</span><span><?php echo esc_js($payment_receipt['date']); ?></span></p>';
-h+='<p><span>Time:</span><span><?php echo esc_js($payment_receipt['time']); ?></span></p>';
-h+='<p><span>Debtor:</span><span style="font-weight:bold"><?php echo esc_js($payment_receipt['debtor_name']); ?></span></p>';
-h+='<p><span>Staff:</span><span><?php echo esc_js($payment_receipt['staff']); ?></span></p>';
+h+='<p><span>Receipt #:</span><span class="receipt-amount"><?php echo esc_js($payment_receipt['receipt_number']); ?></span></p>';
+h+='<p><span>Date:</span><span class="receipt-amount"><?php echo esc_js($payment_receipt['date']); ?></span></p>';
+h+='<p><span>Time:</span><span class="receipt-amount"><?php echo esc_js($payment_receipt['time']); ?></span></p>';
+h+='<p><span>Debtor:</span><span class="receipt-amount"><?php echo esc_js($payment_receipt['debtor_name']); ?></span></p>';
+h+='<p><span>Staff:</span><span class="receipt-amount"><?php echo esc_js($payment_receipt['staff']); ?></span></p>';
 h+='</div>';
 h+='<div class="payment">';
-h+='<p><span>Balance Before:</span><span style="color:#cc0000">N<?php echo number_format($payment_receipt['balance_before'], 0); ?></span></p>';
-h+='<p class="big"><span>PAYMENT AMOUNT:</span><span>N<?php echo number_format($payment_receipt['payment_amount'], 0); ?></span></p>';
-<?php if ($payment_receipt['transfer_amount'] > 0) : ?>h+='<p><span>  - Via Transfer (<?php echo esc_js($payment_receipt['bank_name']); ?>):</span><span>N<?php echo number_format($payment_receipt['transfer_amount'], 0); ?></span></p>';<?php endif; ?>
-<?php if ($payment_receipt['cash_amount'] > 0) : ?>h+='<p><span>  - Via Cash:</span><span>N<?php echo number_format($payment_receipt['cash_amount'], 0); ?></span></p>';<?php endif; ?>
-<?php if ($payment_receipt['home_amount'] > 0) : ?>h+='<p><span>  - Home Calculation:</span><span>N<?php echo number_format($payment_receipt['home_amount'], 0); ?></span></p>';<?php endif; ?>
+h+='<p><span>Balance Before:</span><span class="receipt-amount" style="color:#cc0000">N<?php echo number_format($payment_receipt['balance_before'], 0); ?></span></p>';
+h+='<p class="big"><span>PAYMENT AMOUNT:</span><span class="receipt-amount">N<?php echo number_format($payment_receipt['payment_amount'], 0); ?></span></p>';
+<?php if ($payment_receipt['transfer_amount'] > 0) : ?>h+='<p><span>  - Via Transfer (<?php echo esc_js($payment_receipt['bank_name']); ?>):</span><span class="receipt-amount">N<?php echo number_format($payment_receipt['transfer_amount'], 0); ?></span></p>';<?php endif; ?>
+<?php if ($payment_receipt['cash_amount'] > 0) : ?>h+='<p><span>  - Via Cash:</span><span class="receipt-amount">N<?php echo number_format($payment_receipt['cash_amount'], 0); ?></span></p>';<?php endif; ?>
+<?php if ($payment_receipt['home_amount'] > 0) : ?>h+='<p><span>  - Home Calculation:</span><span class="receipt-amount">N<?php echo number_format($payment_receipt['home_amount'], 0); ?></span></p>';<?php endif; ?>
 h+='</div>';
 h+='<div class="total">';
-h+='<p style="color:<?php echo $payment_receipt['new_balance'] > 0 ? '#cc0000' : '#008800'; ?>"><span>NEW BALANCE:</span><span>N<?php echo number_format($payment_receipt['new_balance'], 0); ?></span></p>';
+h+='<p style="color:<?php echo $payment_receipt['new_balance'] > 0 ? '#cc0000' : '#008800'; ?>"><span>NEW BALANCE:</span><span class="receipt-amount">N<?php echo number_format($payment_receipt['new_balance'], 0); ?></span></p>';
 h+='</div>';
 h+='<div class="footer"><p>Payment received with thanks!</p><p style="margin-top:5px">Powered by BendlessTech</p></div>';
-h+='</body></html>';
+h+='</div></body></html>';
 w.document.write(h);w.document.close();
 w.onload=function(){setTimeout(function(){w.print()},300)};
 }
@@ -974,10 +979,6 @@ function shareReceiptImage(elementId, receiptText){
     var receiptNode = document.getElementById(elementId);
     if (!receiptNode) {
         alert('Receipt image not available.');
-        return;
-    }
-    if (!navigator.share) {
-        alert('Sharing is not supported in this browser.');
         return;
     }
     html2canvas(receiptNode, { backgroundColor: '#ffffff', scale: 2 }).then(function(canvas) {
