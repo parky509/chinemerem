@@ -981,10 +981,17 @@ function sendReceiptWithFallback(elementId, receiptText){
         alert('Receipt image not available.');
         return;
     }
+    var shareWindow = window.open('about:blank', '_blank');
+    if (shareWindow) {
+        shareWindow.document.write('<p style="font-family:Arial,sans-serif;padding:1rem;">Preparing receipt...</p>');
+    }
     html2canvas(receiptNode, { backgroundColor: '#ffffff', scale: 2 }).then(function(canvas) {
         canvas.toBlob(function(blob) {
             if (!blob) {
                 alert('Receipt image could not be created.');
+                if (shareWindow) {
+                    shareWindow.close();
+                }
                 return;
             }
             var file = new File([blob], 'receipt.png', { type: 'image/png' });
@@ -996,11 +1003,23 @@ function sendReceiptWithFallback(elementId, receiptText){
                 }).catch(function(error){
                     console.warn('Share cancelled', error);
                 });
+                if (shareWindow) {
+                    shareWindow.close();
+                }
                 return;
             }
             var reader = new FileReader();
             reader.onloadend = function() {
-                openWhatsappWithReceipt(reader.result, receiptText);
+                var phone = '<?php echo esc_js($debtor->phone ?? ''); ?>';
+                var normalizedPhone = phone.replace(/[^0-9]/g, '');
+                var baseUrl = normalizedPhone ? 'https://wa.me/' + normalizedPhone : 'https://wa.me/';
+                var message = receiptText + '\\n\\nReceipt image (tap to download): ' + reader.result;
+                var url = baseUrl + '?text=' + encodeURIComponent(message);
+                if (shareWindow) {
+                    shareWindow.location.href = url;
+                } else {
+                    window.open(url, '_blank');
+                }
             };
             reader.readAsDataURL(blob);
         });
